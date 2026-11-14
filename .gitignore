@@ -11,3 +11,10 @@ wheels/
 
 # Local credentials
 .env
+
+# Example data (PDFs etc.)
+example_data/
+
+# Chroma vector database
+chroma_langchain_db/
+chroma.sqlite3
