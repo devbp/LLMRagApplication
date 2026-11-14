@@ -258,6 +258,26 @@ class FilesEmbeddings:
         print(f"Added {len(new_splits)} chunks of {os.path.basename(file_path)} to '{collection_name}'.")
         return len(new_splits)
 
+    def reset_collection(self, collection_name: str) -> int:
+        """Delete every chunk in a collection, leaving it empty (the collection itself stays).
+
+        Uses Chroma's reset_collection(), which deletes the collection and recreates
+        it empty. Other collections are untouched. Use add_document() or
+        embed_into_chroma() afterwards to fill it again.
+
+        Args:
+            collection_name: Collection to empty, e.g. "insurance_docs".
+
+        Returns:
+            Number of chunks that were deleted.
+        """
+        vector_store = self.load_chroma_db(collection_name)
+        deleted = len(vector_store.get(include=[])["ids"])
+        vector_store.reset_collection()
+        self._keyword_indexes.pop(collection_name, None)
+        print(f"Reset '{collection_name}': deleted {deleted} chunks.")
+        return deleted
+
     # --- Retrieval ---
 
     def get_keyword_index(self, collection_name: str) -> BM25Index:

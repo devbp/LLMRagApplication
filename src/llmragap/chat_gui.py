@@ -59,8 +59,8 @@ class ChatApp:
 
     @staticmethod
     @st.cache_resource
-    def get_files_embeddings() -> FilesEmbeddings:
-        """Open the Chroma collections once."""
+    def get_vectors_embeddings() -> FilesEmbeddings:
+        """Open the Chroma vector collections once."""
         return FilesEmbeddings()
 
     @staticmethod
@@ -69,7 +69,7 @@ class ChatApp:
         """Build one agent per search mode."""
         sql_db = SqlDatabase()
         sql_db.ensure_downloaded()
-        return RagAgent(ChatApp.get_files_embeddings(), selection_mode, sql_db=sql_db)
+        return RagAgent(ChatApp.get_vectors_embeddings(), selection_mode, sql_db=sql_db)
 
     # --- Agent ---
 
@@ -108,6 +108,8 @@ class ChatApp:
                 self.clear_chat()
             st.divider()
             self.render_upload_form()
+            st.divider()
+            self.render_reset_form()
 
     # --- Adding files to the vector database ---
 
@@ -132,33 +134,60 @@ class ChatApp:
 
     def save_upload(self, upload) -> str:
         """Save an uploaded file into the data folder and return its full path."""
-        files = self.get_files_embeddings()
-        os.makedirs(files.data_dir, exist_ok=True)
+        vectors = self.get_vectors_embeddings()
+        os.makedirs(vectors.data_dir, exist_ok=True)
         # basename() keeps a crafted file name from writing outside the data folder.
-        file_path = os.path.join(files.data_dir, os.path.basename(upload.name))
+        file_path = os.path.join(vectors.data_dir, os.path.basename(upload.name))
         with open(file_path, "wb") as f:
             f.write(upload.getbuffer())
         return file_path
 
     def add_files(self, uploads, collection_name: str, replace: bool) -> None:
         """Embed each uploaded PDF into the collection and report what happened."""
-        files = self.get_files_embeddings()
+        vectors = self.get_vectors_embeddings()
         for upload in uploads:
             name = os.path.basename(upload.name)
             try:
                 with st.spinner(f"Embedding {name}..."):
                     file_path = self.save_upload(upload)
                     if replace:
-                        count = files.update_document(collection_name, file_path)
+                        count = vectors.update_document(collection_name, file_path)
                         st.success(f"{name}: {count} chunks stored in '{collection_name}'.")
                     else:
-                        count = files.add_document(collection_name, file_path)
+                        count = vectors.add_document(collection_name, file_path)
                         if count:
                             st.success(f"{name}: added {count} chunks to '{collection_name}'.")
                         else:
                             st.info(f"{name} is already in '{collection_name}', skipped.")
             except Exception as e:
                 st.error(f"{name}: {e}")
+
+    # --- Resetting a collection ---
+
+    def render_reset_form(self) -> None:
+        """Sidebar form: empty a collection. Needs a ticked confirmation box."""
+        st.subheader("Reset collection")
+        with st.form("reset_form", clear_on_submit=True, border=False):
+            collection_label = st.selectbox("Collection to reset", list(self.COLLECTIONS))
+            confirmed = st.checkbox("I understand this deletes all chunks in the collection")
+            submitted = st.form_submit_button(
+                "Reset collection", icon=":material/delete_forever:", type="primary", width="stretch"
+            )
+
+        if submitted:
+            if not confirmed:
+                st.warning("Tick the confirmation box to reset the collection.")
+            else:
+                self.reset_collection(self.COLLECTIONS[collection_label])
+
+    def reset_collection(self, collection_name: str) -> None:
+        """Empty the collection and report how many chunks were deleted."""
+        try:
+            with st.spinner(f"Resetting {collection_name}..."):
+                deleted = self.get_vectors_embeddings().reset_collection(collection_name)
+            st.success(f"'{collection_name}' is now empty ({deleted} chunks deleted).")
+        except Exception as e:
+            st.error(f"Could not reset '{collection_name}': {e}")
 
     def clear_chat(self) -> None:
         st.session_state.messages = []
