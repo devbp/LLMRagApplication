@@ -2,15 +2,26 @@
 
 The agent answers law questions (VVG / BGB search), music store data questions
 (SQL) and general questions. Each answer shows which tools the agent used.
+The sidebar also lets you upload PDFs and add them to a Chroma collection.
 
 Run:
     uv run streamlit run src/llmragap/chat_gui.py
 """
 
+import os
+
 import streamlit as st
 from langchain_core.messages import AIMessage, ToolMessage
 
-from llmragap.RAG_Pdf import DEFAULT_SELECTION_MODE, SEARCH_MODES, FilesEmbeddings, RagAgent, SqlDatabase
+from llmragap.RAG_Pdf import (
+    CIVIL_CODE_COLLECTION,
+    DEFAULT_SELECTION_MODE,
+    INSURANCE_COLLECTION,
+    SEARCH_MODES,
+    FilesEmbeddings,
+    RagAgent,
+    SqlDatabase,
+)
 
 
 class ChatApp:
@@ -28,6 +39,11 @@ class ChatApp:
         ":orange[:material/public:] General question": "What is the capital of Nepal?",
     }
     MAX_TOOL_OUTPUT_CHARS = 2000  # tool outputs longer than this are cut off in the UI
+    # Collections you can upload into (label shown in the UI -> Chroma collection name).
+    COLLECTIONS = {
+        "Insurance law (VVG)": INSURANCE_COLLECTION,
+        "Civil code (BGB)": CIVIL_CODE_COLLECTION,
+    }
 
     def __init__(self):
         if "messages" not in st.session_state:
@@ -90,6 +106,59 @@ class ChatApp:
             )
             if st.button("Clear chat", icon=":material/delete:", width="stretch"):
                 self.clear_chat()
+            st.divider()
+            self.render_upload_form()
+
+    # --- Adding files to the vector database ---
+
+    def render_upload_form(self) -> None:
+        """Sidebar form: upload PDFs and add them to the chosen collection."""
+        st.subheader("Add documents")
+        with st.form("upload_form", clear_on_submit=True, border=False):
+            uploads = st.file_uploader("PDF files", type="pdf", accept_multiple_files=True)
+            collection_label = st.selectbox("Collection", list(self.COLLECTIONS))
+            replace = st.checkbox(
+                "Replace if already stored",
+                help="Off: files already in the collection are skipped. "
+                "On: their chunks are re-embedded and updated in place.",
+            )
+            submitted = st.form_submit_button("Add to database", icon=":material/upload:", width="stretch")
+
+        if submitted:
+            if not uploads:
+                st.warning("Choose at least one PDF first.")
+            else:
+                self.add_files(uploads, self.COLLECTIONS[collection_label], replace)
+
+    def save_upload(self, upload) -> str:
+        """Save an uploaded file into the data folder and return its full path."""
+        files = self.get_files_embeddings()
+        os.makedirs(files.data_dir, exist_ok=True)
+        # basename() keeps a crafted file name from writing outside the data folder.
+        file_path = os.path.join(files.data_dir, os.path.basename(upload.name))
+        with open(file_path, "wb") as f:
+            f.write(upload.getbuffer())
+        return file_path
+
+    def add_files(self, uploads, collection_name: str, replace: bool) -> None:
+        """Embed each uploaded PDF into the collection and report what happened."""
+        files = self.get_files_embeddings()
+        for upload in uploads:
+            name = os.path.basename(upload.name)
+            try:
+                with st.spinner(f"Embedding {name}..."):
+                    file_path = self.save_upload(upload)
+                    if replace:
+                        count = files.update_document(collection_name, file_path)
+                        st.success(f"{name}: {count} chunks stored in '{collection_name}'.")
+                    else:
+                        count = files.add_document(collection_name, file_path)
+                        if count:
+                            st.success(f"{name}: added {count} chunks to '{collection_name}'.")
+                        else:
+                            st.info(f"{name} is already in '{collection_name}', skipped.")
+            except Exception as e:
+                st.error(f"{name}: {e}")
 
     def clear_chat(self) -> None:
         st.session_state.messages = []
