@@ -24,6 +24,8 @@ dependencies = [
     "streamlit==1.65.0",
     "supabase>=2.33.0",
     "uvicorn>=0.54.0",
+    "deepeval>=4.3.4",
+    "pandas>=2.3.3",
 ]
 
 [project.scripts]

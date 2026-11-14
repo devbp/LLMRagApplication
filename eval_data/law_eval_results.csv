@@ -1,0 +1,142 @@
+﻿input,expected_output,actual_output,retrieval_context,passed,Answer Relevancy score,Answer Relevancy passed,Answer Relevancy reason,Faithfulness score,Faithfulness passed,Faithfulness reason
+"Under the Insurance Contract Act, if a subsequent premium is not paid on time, what payment deadline can the insurer set for the policyholder?","The insurer may set the policyholder a payment deadline of no less than two weeks, in writing and at the policyholder's expense. The deadline is only effective if it details the amounts in arrears, the interest and the costs, and states the legal consequences of missing it.","If a subsequent premium is not paid on time, the insurer may set the policyholder a payment deadline of no less than two weeks. This deadline must be communicated in writing, and it should specify the individual amounts of the premium due (Insurance Contract Act, VVG, Section 38).
+
+Reference: englisch_vvg.pdf, page 15.","[englisch_vvg.pdf, page 15]
+to withdraw from the contract as long as the payment has not been made, unless the 
+policyholder is not responsible for the non-payment. 
+(2) If the single premium, or first premium, has not been paid when the insured event occurs, 
+the insurer is not obliged to effect payment, unless the policyholder is not responsible for the 
+non-payment. The insurer is only released from liability if he or she had informed the 
+policyholder of the legal consequence of non-payment of the premium in writing in a 
+separate communication or by means of a conspicuous note in the insurance policy.  
+Section 38 
+Delayed payment of subsequent premium 
+(1) If a subsequent premium is not paid in good time, the insurer may set the policyholder a 
+payment deadline of no less than two weeks, at his or her expense and in writing. The 
+setting of the deadline is only effective if it details the individual amounts of the premiu m
+
+---
+
+[englisch_vvg.pdf, page 38]
+Section 143 
+Continuation of liability vis-à-vis mortgage creditors 
+(1) In the event of a subsequent premium not being paid in good time, the insurer remains 
+obliged to effect payment to a mortgage creditor who has declared his or her mortgage up 
+until one month after the time when the mortgage creditor was informed of the setting of the 
+deadline for payment or, if this information was not communicated, notification has been 
+given of the termination of the contract. 
+(2) The termination of the insurance agreement does not become effective against a 
+mortgage creditor who has declared his or her mortgage until two months after the time 
+when the insurer informed him or her of the termination and, insofar as this had not occurred, 
+until such time as the contract was terminated or he or she learned thereof in another 
+manner. Sentence 1 does not apply if the insurance agreement is terminated on account of
+
+---
+
+[englisch_vvg.pdf, page 38]
+Chapter 4 
+Building fire insurance 
+Section 142 
+Disclosures to mortgage creditors 
+(1) In the case of building fire insurance, the insurer must disclose, in writing and without 
+undue delay, to a mortgage creditor who has declared his or her mortgage in the event that 
+the single or first premium is not paid in good time, or the policyholder is given a deadline by 
+when he or she must pay a subsequent premium. This also applies if the insurance 
+agreement is terminated once the deadline expires on account of the non-payment of the 
+subsequent premium. 
+(2) The insurer informs a mortgage creditor who has declared his or her mortgage in writing 
+of the occurrence of the insured event within one week after he or she has learned thereof, 
+unless the loss or damage is immaterial. 
+Section 143 
+Continuation of liability vis-à-vis mortgage creditors 
+(1) In the event of a subsequent premium not being paid in good time, the insurer remains
+
+---
+
+[englisch_vvg.pdf, page 52]
+reminder, the premium payment in arrears, including the late payment charges, is higher 
+than the premium share for one month, the insurer issues a second reminder and indicates 
+the consequences in accordance with sentence 4. If the amount of the premium payment in 
+arrears, including the late payment charges, remains higher than the premium share for one 
+month after receipt of the second reminder, the contract is suspended from the first day of 
+the following month onwards. Suspension of the contract does not come into effect, or is 
+terminated, when the policyholder or the insured person are or become in need of assistance 
+within the meaning of Book 2 or 12 of the Social Code; need of assistance is certified, on 
+request by the policyholder, by the competent funding organisation in accordance with 
+Book 2 or 12 of the Social Code.  
+(7) As long as the contact is suspended, the policyholder is deemed to be insured in the",True,1.0,True,"The score is 1.00 because the response directly addresses the question regarding the payment deadline set by the insurer under the Insurance Contract Act, with no irrelevant statements present.",1.0,True,"The score is 1.00 because there are no contradictions present, indicating that the actual output aligns perfectly with the retrieval context."
+What is the standard limitation period under the German Civil Code?,"Under Section 195 of the Civil Code, the standard limitation period is three years.","The standard limitation period under the German Civil Code (BGB) is three years. This is specified in Section 195 of the BGB. 
+
+For more details, you can refer to the document on page 30.","[englisch_bgb.pdf, page 30]
+a general holiday officially recognised at the place of the declaration or performance, or on a 
+Saturday, the next working day takes the place of this day. 
+Division 5 
+Limitation 
+Title 1 
+Subject-matter and duration of limitation 
+Section 194 
+Subject-matter of limitation 
+(1) The right to demand that another person does or refrains from an act (claim) is subject to 
+limitation. 
+(2) Claims based on a family-law relationship are not subject to limitation to the extent that 
+they are directed towards creating a situation appropriate for the relationship for the future or 
+towards consent to a genetic test to clear up biological descent. 
+Section 195 
+Standard limitation period 
+The standard limitation period is three years. 
+Section 196 
+Limitation period for rights to a plot of land 
+Claims to the transfer of ownership of land and to the creation, transfer or cancellation of a 
+right to a plot of land or to a change of the subject-matter of such a right and entitlements to
+
+---
+
+[englisch_bgb.pdf, page 32]
+Section 202 
+Inadmissibility of agreements on limitation 
+(1) In the case of liability for intent, the limitation period may not be eased in advance by 
+legal transaction. 
+(2) The limitation period may not be extended by legal transaction beyond a period of 30 
+years from the commencement of the statutory limitation period. 
+Title 2 
+Suspension, suspension of expiry and recommencement of the limitation period 
+Section 203 
+Suspension of limitation in the case of negotiations 
+If negotiations between the obligor and the obligee are in progress in respect of the claim or 
+the circumstances giving rise to the claim, the limitation period is suspended until one party 
+or the other refuses to continue the negotiations. The claim is statute-barred at the earliest 
+three months after the end of the suspension. 
+Section 204 
+Suspension of limitation as a result of prosecution of rights 
+(1) The limitation period is suspended by:
+
+---
+
+[englisch_bgb.pdf, page 136]
+property are subject to a six-month limitation period. The limitation period commences at the 
+time the leased property is returned to the lessor. Upon the claim of the lessor to return of 
+the leased property becoming statute-barred, the compensation claims of the lessor likewise 
+become statute-barred. 
+(2) The claims of the lessee to reimbursement of expenses or to permission to remove an 
+installation are subject to a six-month limitation period after the termination of the lease. 
+(3) (repealed) 
+Section 548a 
+Lease of digital products
+
+---
+
+[englisch_bgb.pdf, page 35]
+Section 211 
+Suspension of expiry of the limitation period in matters relating to estates 
+A claim that is part of or directed against an estate does not become statute-barred until at 
+least six months have passed from the time at which the inheritance is accepted by the heir 
+or at which insolvency proceedings in respect of the estate are opened or onwards of which 
+the claim may be asserted by or against an agent. If the limitation period is shorter than six 
+months, the period specified for limitation takes the place of the period of six months. 
+Section 212 
+Recommencement of the limitation period 
+(1) The limitation period recommences if 
+1. the obligor acknowledges the claim towards the obligee by making partial 
+payment, paying interest, providing security or in some other manner, or 
+2. a judicial or official act of execution is undertaken or applied for. 
+(2) The recommencement of the limitation period as a result of an act of execution is",True,1.0,True,The score is 1.00 because the response directly addresses the question about the standard limitation period under the German Civil Code without any irrelevant statements.,1.0,True,"The score is 1.00 because there are no contradictions present, indicating that the actual output aligns perfectly with the retrieval context."

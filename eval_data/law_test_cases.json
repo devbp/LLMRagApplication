@@ -1,0 +1,10 @@
+[
+  {
+    "input": "Under the Insurance Contract Act, if a subsequent premium is not paid on time, what payment deadline can the insurer set for the policyholder?",
+    "expected_output": "The insurer may set the policyholder a payment deadline of no less than two weeks, in writing and at the policyholder's expense. The deadline is only effective if it details the amounts in arrears, the interest and the costs, and states the legal consequences of missing it."
+  },
+  {
+    "input": "What is the standard limitation period under the German Civil Code?",
+    "expected_output": "Under Section 195 of the Civil Code, the standard limitation period is three years."
+  }
+]
