@@ -26,6 +26,7 @@ dependencies = [
     "uvicorn>=0.54.0",
     "deepeval>=4.3.4",
     "pandas>=2.3.3",
+    "langchain-mcp-adapters>=0.3.2",
 ]
 
 [project.scripts]
