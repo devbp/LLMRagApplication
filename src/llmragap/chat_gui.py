@@ -18,6 +18,7 @@ from llmragap.RAG_Pdf import (
     DEFAULT_SELECTION_MODE,
     INSURANCE_COLLECTION,
     SEARCH_MODES,
+    ChatCostCallback,
     FilesEmbeddings,
     RagAgent,
     SqlDatabase,
@@ -51,6 +52,9 @@ class ChatApp:
         if "upload_costs" not in st.session_state:
             # One entry per embedded file: {"file", "collection", "chunks", "tokens", "cost_usd"}
             st.session_state.upload_costs = []
+        if "chat_costs" not in st.session_state:
+            # Running totals for agent answers; kept when the chat is cleared.
+            st.session_state.chat_costs = {"answers": 0, "tokens": 0, "agent_usd": 0.0, "search_usd": 0.0}
         self.selection_mode = DEFAULT_SELECTION_MODE
 
     @property
@@ -76,10 +80,17 @@ class ChatApp:
 
     # --- Agent ---
 
-    def run_agent(self) -> tuple[str, list[dict]]:
-        """Send the whole conversation to the agent; return (answer, tool steps)."""
+    def run_agent(self) -> tuple[str, list[dict], dict]:
+        """Send the whole conversation to the agent; return (answer, tool steps, cost)."""
         history = [{"role": m["role"], "content": m["content"]} for m in self.messages]
-        result_messages = self.get_agent(self.selection_mode).agent.invoke({"messages": history})["messages"]
+        cost = ChatCostCallback()  # counts every model call in this run, including inside tools
+        # Document searches embed the query; measure that as the change in the embedding total.
+        # (The embeddings object is shared, so a simultaneous search in another tab could add to it.)
+        embeddings_before = self.get_vectors_embeddings().total_usage["cost_usd"]
+        result_messages = self.get_agent(self.selection_mode).agent.invoke(
+            {"messages": history}, config={"callbacks": [cost]}
+        )["messages"]
+        search_cost = self.get_vectors_embeddings().total_usage["cost_usd"] - embeddings_before
 
         # Only look at messages from this turn (after the conversation we sent).
         new_messages = result_messages[len(history):]
@@ -90,7 +101,7 @@ class ChatApp:
             if isinstance(m, AIMessage)
             for call in m.tool_calls
         ]
-        return result_messages[-1].text, steps
+        return result_messages[-1].text, steps, {**cost.as_dict(), "search_embedding_usd": search_cost}
 
     # --- UI parts ---
 
@@ -111,7 +122,7 @@ class ChatApp:
                 self.clear_chat()
             st.divider()
             self.render_upload_form()
-            self.render_embedding_cost()
+            self.render_cost_summary()
             st.divider()
             self.render_reset_form()
 
@@ -147,8 +158,19 @@ class ChatApp:
         return file_path
 
     @staticmethod
-    def format_cost(usage: dict) -> str:
-        return f"{usage['tokens']:,} tokens, ${usage['cost_usd']:.4f}"
+    def money(usd: float) -> str:
+        """$0.0123 for normal amounts; tiny ones keep their digits ($0.00000039, not $0.0000)."""
+        if usd == 0 or usd >= 0.001:
+            return f"${usd:.4f}"
+        return "$" + f"{usd:.8f}".rstrip("0")
+
+    @staticmethod
+    def plural(n: int, word: str) -> str:
+        return f"{n:,} {word}{'' if n == 1 else 's'}"
+
+    @classmethod
+    def format_cost(cls, usage: dict) -> str:
+        return f"{usage['tokens']:,} tokens, {cls.money(usage['cost_usd'])}"
 
     def add_files(self, uploads, collection_name: str, replace: bool) -> None:
         """Embed each uploaded PDF into the collection and report what happened."""
@@ -174,21 +196,30 @@ class ChatApp:
             except Exception as e:
                 st.error(f"{name}: {e}")
 
-    def render_embedding_cost(self) -> None:
-        """Sidebar: what embedding the uploaded files cost, as billed by OpenRouter."""
+    def render_cost_summary(self) -> None:
+        """Sidebar: everything this session cost (as billed by OpenRouter), with a breakdown."""
         uploads = st.session_state.upload_costs
+        chat = st.session_state.chat_costs
+        upload_usd = sum(u["cost_usd"] for u in uploads)
+        upload_tokens = sum(u["tokens"] for u in uploads)
+        total = upload_usd + chat["agent_usd"] + chat["search_usd"]
+
         with st.container(border=True):
-            st.markdown(":material/payments: **Embedding cost**")
-            total = sum(u["cost_usd"] for u in uploads)
-            tokens = sum(u["tokens"] for u in uploads)
-            st.metric("Uploads this session", f"${total:.4f}", help=f"{tokens:,} tokens", border=False)
-            for u in reversed(uploads[-5:]):  # latest first
-                st.caption(f"{u['file']}: {u['chunks']} chunks · {self.format_cost(u)}")
-            all_calls = self.get_vectors_embeddings().total_usage
-            st.caption(
-                f"All embedding calls since app start (incl. search queries): "
-                f"{self.format_cost(all_calls)}"
+            st.metric(":material/payments: Total cost this session", self.money(total), border=False)
+            st.table(
+                {
+                    "Part": ["Agent model", "Search embeddings", "Upload embeddings"],
+                    "Cost": [self.money(chat["agent_usd"]), self.money(chat["search_usd"]), self.money(upload_usd)],
+                    "Details": [
+                        f"{self.plural(chat['answers'], 'answer')}, {chat['tokens']:,} tokens",
+                        "questions embedded for document search",
+                        f"{self.plural(len(uploads), 'file')}, {upload_tokens:,} tokens",
+                    ],
+                },
+                hide_index=True,
             )
+            for u in reversed(uploads[-5:]):  # latest uploads first
+                st.caption(f"{u['file']}: {u['chunks']} chunks · {self.format_cost(u)}")
 
     # --- Resetting a collection ---
 
@@ -235,12 +266,26 @@ class ChatApp:
                         output = output[: self.MAX_TOOL_OUTPUT_CHARS] + "\n..."
                     st.text(output)
 
+    @staticmethod
+    def show_message_cost(cost: dict | None) -> None:
+        """Small line under an answer: what the model calls for it cost."""
+        if not cost:
+            return
+        total = cost["cost_usd"] + cost.get("search_embedding_usd", 0.0)
+        st.caption(
+            f":material/payments: {ChatApp.money(total)} · "
+            f"{cost['input_tokens']:,} in / {cost['output_tokens']:,} out tokens · "
+            f"{ChatApp.plural(cost['calls'], 'model call')}"
+        )
+
     def render_history(self) -> None:
         for msg in self.messages:
             with st.chat_message(msg["role"]):
                 if msg["role"] == "assistant":
                     self.show_steps(msg.get("steps", []))
                 st.markdown(msg["content"])
+                if msg["role"] == "assistant":
+                    self.show_message_cost(msg.get("cost"))
 
     def get_prompt(self) -> str | None:
         """Return the typed question, or a picked suggestion while the chat is empty."""
@@ -262,13 +307,21 @@ class ChatApp:
         with st.chat_message("assistant"):
             try:
                 with st.spinner("Thinking..."):
-                    answer, steps = self.run_agent()
+                    answer, steps, cost = self.run_agent()
             except Exception as e:
-                answer, steps = f":red[Error: {e}]", []
+                answer, steps, cost = f":red[Error: {e}]", [], None
             self.show_steps(steps)
             st.markdown(answer)
+            self.show_message_cost(cost)
 
-        self.messages.append({"role": "assistant", "content": answer, "steps": steps})
+        if cost:
+            totals = st.session_state.chat_costs
+            totals["answers"] += 1
+            totals["tokens"] += cost["input_tokens"] + cost["output_tokens"]
+            totals["agent_usd"] += cost["cost_usd"]
+            totals["search_usd"] += cost["search_embedding_usd"]
+
+        self.messages.append({"role": "assistant", "content": answer, "steps": steps, "cost": cost})
         st.rerun()
 
     def run(self) -> None:

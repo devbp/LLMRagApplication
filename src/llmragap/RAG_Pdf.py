@@ -14,7 +14,9 @@ from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain.tools import tool
 from langchain_chroma import Chroma
+from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.documents import Document
+from langchain_core.outputs import LLMResult
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -439,6 +441,42 @@ class SqlDatabase:
             return f"Error: {e}"
         finally:
             con.close()
+
+
+class ChatCostCallback(BaseCallbackHandler):
+    """Adds up tokens and cost of every chat model call made during one agent run.
+
+    OpenRouter puts the billed cost in each reply's response_metadata["cost"].
+    Pass an instance in the run config, e.g.
+        agent.invoke(inputs, config={"callbacks": [cost := ChatCostCallback()]})
+    It also catches model calls made inside tools (like sql_db_query_checker).
+    """
+
+    def __init__(self):
+        self.calls = 0
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.cost_usd = 0.0
+
+    def on_llm_end(self, response: LLMResult, **kwargs) -> None:
+        for generations in response.generations:
+            for gen in generations:
+                message = getattr(gen, "message", None)
+                if message is None:
+                    continue
+                self.calls += 1
+                usage = getattr(message, "usage_metadata", None) or {}
+                self.input_tokens += usage.get("input_tokens", 0)
+                self.output_tokens += usage.get("output_tokens", 0)
+                self.cost_usd += float(message.response_metadata.get("cost") or 0.0)
+
+    def as_dict(self) -> dict:
+        return {
+            "calls": self.calls,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cost_usd": self.cost_usd,
+        }
 
 
 class RagAgent:
