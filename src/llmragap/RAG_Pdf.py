@@ -4,7 +4,9 @@ import pathlib
 import sqlite3
 import sys
 import threading
+from collections.abc import Callable
 from contextlib import contextmanager
+from typing import TypeAlias
 
 import chromadb
 import httpx
@@ -42,6 +44,10 @@ SQL_DB_URL = "https://storage.googleapis.com/benchmarks-artifacts/chinook/Chinoo
 #   "hybrid"   - both, merged with reciprocal rank fusion
 SEARCH_MODES = ("semantic", "keyword", "hybrid")
 DEFAULT_SELECTION_MODE = "hybrid"
+
+# Chunks are embedded in batches of this size, so progress can be reported between batches.
+EMBED_BATCH_SIZE = 50
+ProgressCallback: TypeAlias = Callable[[int, int], None]  # progress(done_chunks, total_chunks)
 
 
 
@@ -177,12 +183,41 @@ class FilesEmbeddings:
         name = os.path.basename(file_path)
         return [f"{name}::chunk-{i}" for i in range(len(splits))]
 
-    def embed_into_chroma(self, file_path: str, collection_name: str) -> Chroma:
+    def store_chunks(
+        self,
+        vector_store: Chroma,
+        to_add: list[tuple[str, Document]],
+        to_update: list[tuple[str, Document]] = (),
+        progress: ProgressCallback | None = None,
+    ) -> None:
+        """Embed and store (id, chunk) pairs in batches, reporting progress after each batch.
+
+        Args:
+            to_add: Chunks to add with add_documents().
+            to_update: Chunks to overwrite in place with update_documents().
+            progress: Called as progress(done, total) after each batch.
+        """
+        total = len(to_add) + len(to_update)
+        done = 0
+        if progress:
+            progress(0, total)
+        for pairs, store in ((to_update, vector_store.update_documents), (to_add, vector_store.add_documents)):
+            for start in range(0, len(pairs), EMBED_BATCH_SIZE):
+                ids, docs = zip(*pairs[start:start + EMBED_BATCH_SIZE])
+                store(ids=list(ids), documents=list(docs))
+                done += len(ids)
+                if progress:
+                    progress(done, total)
+
+    def embed_into_chroma(
+        self, file_path: str, collection_name: str, progress: ProgressCallback | None = None
+    ) -> Chroma:
         """Load a PDF, split it into chunks, embed them and store them in the given collection."""
         all_splits = self.split_pdf(file_path)
         vector_store = self.load_chroma_db(collection_name)
         with self.track_upload_cost():
-            vector_store.add_documents(all_splits, ids=self.make_chunk_ids(file_path, all_splits))
+            pairs = list(zip(self.make_chunk_ids(file_path, all_splits), all_splits))
+            self.store_chunks(vector_store, to_add=pairs, progress=progress)
         self._keyword_indexes.pop(collection_name, None)
         print(f"Stored {len(all_splits)} chunks in '{collection_name}'.")
         return vector_store
@@ -197,7 +232,9 @@ class FilesEmbeddings:
             print(f"'{collection_name}' not found, embedding {file_path}...")
             self.embed_into_chroma(file_path, collection_name)
 
-    def update_document(self, collection_name: str, file_name: str) -> int:
+    def update_document(
+        self, collection_name: str, file_name: str, progress: ProgressCallback | None = None
+    ) -> int:
         """Re-embed one file and update its chunks in place with Chroma's update_documents().
 
         Chunks are matched by their stable IDs (see make_chunk_ids):
@@ -211,6 +248,7 @@ class FilesEmbeddings:
             collection_name: Collection to update, e.g. "insurance_docs".
             file_name: PDF file name inside data_dir (e.g. "englisch_vvg.pdf"),
                 or a full path to the file.
+            progress: Optional progress(done, total) callback, called after each batch of chunks.
 
         Returns:
             Number of chunks now stored for the file.
@@ -230,12 +268,7 @@ class FilesEmbeddings:
         to_delete = list(old_ids - set(new_ids))
 
         with self.track_upload_cost():
-            if to_update:
-                ids, docs = zip(*to_update)
-                vector_store.update_documents(ids=list(ids), documents=list(docs))
-            if to_add:
-                ids, docs = zip(*to_add)
-                vector_store.add_documents(documents=list(docs), ids=list(ids))
+            self.store_chunks(vector_store, to_add=to_add, to_update=to_update, progress=progress)
         if to_delete:
             vector_store.delete(ids=to_delete)
         self._keyword_indexes.pop(collection_name, None)
@@ -246,7 +279,9 @@ class FilesEmbeddings:
         )
         return len(new_splits)
 
-    def add_document(self, collection_name: str, file_name: str) -> int:
+    def add_document(
+        self, collection_name: str, file_name: str, progress: ProgressCallback | None = None
+    ) -> int:
         """Add a new PDF to an existing collection without touching what's already there.
 
         If the file is already stored in the collection, it is skipped so that running
@@ -257,6 +292,7 @@ class FilesEmbeddings:
             collection_name: Collection to add to, e.g. "insurance_docs".
             file_name: PDF file name inside data_dir (e.g. "new_policy.pdf"),
                 or a full path to the file.
+            progress: Optional progress(done, total) callback, called after each batch of chunks.
 
         Returns:
             Number of chunks added (0 if the file was already stored).
@@ -272,7 +308,8 @@ class FilesEmbeddings:
 
         new_splits = self.split_pdf(file_path)
         with self.track_upload_cost():
-            vector_store.add_documents(new_splits, ids=self.make_chunk_ids(file_path, new_splits))
+            pairs = list(zip(self.make_chunk_ids(file_path, new_splits), new_splits))
+            self.store_chunks(vector_store, to_add=pairs, progress=progress)
         self._keyword_indexes.pop(collection_name, None)
         print(f"Added {len(new_splits)} chunks of {os.path.basename(file_path)} to '{collection_name}'.")
         return len(new_splits)

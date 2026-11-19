@@ -132,7 +132,12 @@ class ChatApp:
         """Sidebar form: upload PDFs and add them to the chosen collection."""
         st.subheader("Add documents")
         with st.form("upload_form", clear_on_submit=True, border=False):
-            uploads = st.file_uploader("PDF files", type="pdf", accept_multiple_files=True)
+            uploads = st.file_uploader(
+                "PDF files",
+                type="pdf",
+                accept_multiple_files=True,
+                help="Select or drop several PDFs at once; they are embedded one after another.",
+            )
             collection_label = st.selectbox("Collection", list(self.COLLECTIONS))
             replace = st.checkbox(
                 "Replace if already stored",
@@ -175,26 +180,70 @@ class ChatApp:
     def add_files(self, uploads, collection_name: str, replace: bool) -> None:
         """Embed each uploaded PDF into the collection and report what happened."""
         vectors = self.get_vectors_embeddings()
-        for upload in uploads:
+        n_files = len(uploads)
+        multiple = n_files > 1
+        # Overall bar: each file is an equal share; inside a file it moves with its chunks.
+        overall = st.progress(0, text=f"0/{n_files} files done") if multiple else None
+        file_bar = st.progress(0)
+        results = st.container()  # one result line per file, in upload order
+        totals = {"added": 0, "skipped": 0, "failed": 0, "chunks": 0, "tokens": 0, "cost_usd": 0.0}
+
+        for index, upload in enumerate(uploads):
             name = os.path.basename(upload.name)
+            label = f"{name} ({index + 1}/{n_files})" if multiple else name
+            file_bar.progress(0, text=f"{label}: reading and splitting PDF...")
+
+            def show_progress(done: int, total: int, index=index, label=label) -> None:
+                fraction = done / total if total else 1.0
+                file_bar.progress(fraction, text=f"{label}: embedding {done}/{total} chunks")
+                if overall:
+                    overall.progress(
+                        (index + fraction) / n_files,
+                        text=f"{index}/{n_files} files done · embedding {name}",
+                    )
+
             try:
-                with st.spinner(f"Embedding {name}..."):
-                    file_path = self.save_upload(upload)
-                    if replace:
-                        count = vectors.update_document(collection_name, file_path)
-                    else:
-                        count = vectors.add_document(collection_name, file_path)
-                if not count:
-                    st.info(f"{name} is already in '{collection_name}', skipped (no cost).")
-                    continue
-                usage = vectors.last_upload_usage
-                action = "stored" if replace else "added"
-                st.success(f"{name}: {count} chunks {action} in '{collection_name}' ({self.format_cost(usage)}).")
-                st.session_state.upload_costs.append(
-                    {"file": name, "collection": collection_name, "chunks": count, **usage}
-                )
+                file_path = self.save_upload(upload)
+                if replace:
+                    count = vectors.update_document(collection_name, file_path, progress=show_progress)
+                else:
+                    count = vectors.add_document(collection_name, file_path, progress=show_progress)
             except Exception as e:
-                st.error(f"{name}: {e}")
+                totals["failed"] += 1
+                results.error(f"{name}: {e}")
+                count = None
+            else:
+                if not count:
+                    totals["skipped"] += 1
+                    results.info(f"{name} is already in '{collection_name}', skipped (no cost).")
+                else:
+                    usage = vectors.last_upload_usage
+                    totals["added"] += 1
+                    totals["chunks"] += count
+                    totals["tokens"] += usage["tokens"]
+                    totals["cost_usd"] += usage["cost_usd"]
+                    action = "stored" if replace else "added"
+                    results.success(
+                        f"{name}: {count} chunks {action} in '{collection_name}' ({self.format_cost(usage)})."
+                    )
+                    st.session_state.upload_costs.append(
+                        {"file": name, "collection": collection_name, "chunks": count, **usage}
+                    )
+            if overall:
+                overall.progress((index + 1) / n_files, text=f"{index + 1}/{n_files} files done")
+
+        file_bar.empty()
+        if overall:
+            overall.empty()
+            parts = [f"{totals['added']} embedded"]
+            if totals["skipped"]:
+                parts.append(f"{totals['skipped']} skipped")
+            if totals["failed"]:
+                parts.append(f"{totals['failed']} failed")
+            st.markdown(
+                f"**{n_files} files:** {', '.join(parts)} · {totals['chunks']:,} chunks · "
+                f"{self.format_cost(totals)}"
+            )
 
     def render_cost_summary(self) -> None:
         """Sidebar: everything this session cost (as billed by OpenRouter), with a breakdown."""
