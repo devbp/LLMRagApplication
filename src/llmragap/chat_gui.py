@@ -48,6 +48,9 @@ class ChatApp:
     def __init__(self):
         if "messages" not in st.session_state:
             st.session_state.messages = []
+        if "upload_costs" not in st.session_state:
+            # One entry per embedded file: {"file", "collection", "chunks", "tokens", "cost_usd"}
+            st.session_state.upload_costs = []
         self.selection_mode = DEFAULT_SELECTION_MODE
 
     @property
@@ -108,6 +111,7 @@ class ChatApp:
                 self.clear_chat()
             st.divider()
             self.render_upload_form()
+            self.render_embedding_cost()
             st.divider()
             self.render_reset_form()
 
@@ -142,6 +146,10 @@ class ChatApp:
             f.write(upload.getbuffer())
         return file_path
 
+    @staticmethod
+    def format_cost(usage: dict) -> str:
+        return f"{usage['tokens']:,} tokens, ${usage['cost_usd']:.4f}"
+
     def add_files(self, uploads, collection_name: str, replace: bool) -> None:
         """Embed each uploaded PDF into the collection and report what happened."""
         vectors = self.get_vectors_embeddings()
@@ -152,15 +160,35 @@ class ChatApp:
                     file_path = self.save_upload(upload)
                     if replace:
                         count = vectors.update_document(collection_name, file_path)
-                        st.success(f"{name}: {count} chunks stored in '{collection_name}'.")
                     else:
                         count = vectors.add_document(collection_name, file_path)
-                        if count:
-                            st.success(f"{name}: added {count} chunks to '{collection_name}'.")
-                        else:
-                            st.info(f"{name} is already in '{collection_name}', skipped.")
+                if not count:
+                    st.info(f"{name} is already in '{collection_name}', skipped (no cost).")
+                    continue
+                usage = vectors.last_upload_usage
+                action = "stored" if replace else "added"
+                st.success(f"{name}: {count} chunks {action} in '{collection_name}' ({self.format_cost(usage)}).")
+                st.session_state.upload_costs.append(
+                    {"file": name, "collection": collection_name, "chunks": count, **usage}
+                )
             except Exception as e:
                 st.error(f"{name}: {e}")
+
+    def render_embedding_cost(self) -> None:
+        """Sidebar: what embedding the uploaded files cost, as billed by OpenRouter."""
+        uploads = st.session_state.upload_costs
+        with st.container(border=True):
+            st.markdown(":material/payments: **Embedding cost**")
+            total = sum(u["cost_usd"] for u in uploads)
+            tokens = sum(u["tokens"] for u in uploads)
+            st.metric("Uploads this session", f"${total:.4f}", help=f"{tokens:,} tokens", border=False)
+            for u in reversed(uploads[-5:]):  # latest first
+                st.caption(f"{u['file']}: {u['chunks']} chunks · {self.format_cost(u)}")
+            all_calls = self.get_vectors_embeddings().total_usage
+            st.caption(
+                f"All embedding calls since app start (incl. search queries): "
+                f"{self.format_cost(all_calls)}"
+            )
 
     # --- Resetting a collection ---
 

@@ -5,15 +5,9 @@ from dotenv import dotenv_values, find_dotenv, load_dotenv
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.checkpoint.memory import InMemorySaver
 
 load_dotenv()
-ENV = dotenv_values(find_dotenv())  # values read directly from the .env file
-
-XWEATHER_API_KEY = ENV.get("XWEATHER_API_KEY")
-print(f"XWEATHER_API_KEY: {XWEATHER_API_KEY}")
-if not XWEATHER_API_KEY:
-    
-    raise SystemExit("XWEATHER_API_KEY is missing in .env (format: <client_id>_<client_secret>)")
 
 
 SYSTEM_PROMPT = """You are a travel assistant. Today is {today}.
@@ -81,9 +75,37 @@ asked about, not just the last tool's results.
 """
 
 
-async def main():
-    client = MultiServerMCPClient(
-        {
+def _root_error(exc: BaseException) -> str:
+    """Return the first real error inside (possibly nested) ExceptionGroups."""
+    while isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+        exc = exc.exceptions[0]
+    return str(exc).splitlines()[0]
+
+
+class TravelAgent:
+    """Travel assistant that answers weather, flight and hotel questions via MCP servers.
+
+    Usage:
+        agent = TravelAgent()
+        await agent.setup()                 # connect to the servers, build the agent
+        answer = await agent.ask("...")     # follow-up questions remember earlier ones
+    """
+
+    def __init__(self, model_name: str = "openrouter:openai/gpt-4o-mini", thread_id: str = "default"):
+        self.env = dotenv_values(find_dotenv())  # values read directly from the .env file
+        self.model_name = model_name
+        self.thread_id = thread_id
+        self.tools = []
+        self.unavailable: dict[str, str] = {}  # server name -> error, filled by setup()
+        self.agent = None
+
+        self.xweather_api_key = self.env.get("XWEATHER_API_KEY")
+        if not self.xweather_api_key:
+            raise SystemExit("XWEATHER_API_KEY is missing in .env (format: <client_id>_<client_secret>)")
+
+    def server_config(self) -> dict:
+        """MCP servers the agent can use."""
+        return {
             "hotels": {
                 "url": "https://mcp.trivago.com/mcp",
                 "transport": "http",
@@ -91,53 +113,91 @@ async def main():
                 # so skip it to avoid the "Session termination failed" message.
                 "terminate_on_close": False,
             },
-
             "flights": {
                 "url": "https://mcp.airtreks.com/mcp",
                 "transport": "http",
-               
-                #"terminate_on_close": False,
             },
-
             "weather": {
                 "url": "https://mcp.api.xweather.com/mcp",
-                "transport": "http",             
-                
-                "headers": {"Authorization": f"Bearer {XWEATHER_API_KEY}"},
-                #"terminate_on_close": False,
+                "transport": "http",
+                "headers": {"Authorization": f"Bearer {self.xweather_api_key}"},
             },
-
-
         }
-        
-    )
-    tools = await client.get_tools()  # async: must be awaited
-    print(f"Loaded {len(tools)} tools: {', '.join(t.name for t in tools)}")
-    # API key and base URL go on the model, not on create_agent.
-    model = init_chat_model(
-        "openrouter:openai/gpt-4o-mini",
-        api_key=ENV.get("OPENROUTER_API_KEY"),  # from .env
-        temperature=0,
-    )
-    agent = create_agent(
-        model=model,
-        tools=tools,
-        system_prompt=SYSTEM_PROMPT.format(today=date.today().isoformat()),
-    )
 
-    # MCP tools are async-only, so the agent must be run with ainvoke.
-    response = await agent.ainvoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": "what is the weather in Munich in for 2026-11-16 till 2026-11-20, seach for best price flight from Munich warmest day to Frankfurt . Look for best hotel for 1 day in Frankfurt",
-                    #"content": "find flight from Munich to Kathmanduon 2027-07-01, and find hotel for 1 week in Kathmandu",
-                }
-            ]
-        }
+    def build_model(self):
+        # API key goes on the model, not on create_agent.
+        return init_chat_model(
+            self.model_name,
+            api_key=self.env.get("OPENROUTER_API_KEY"),  # from .env
+            temperature=0,
+        )
+
+    async def setup(self) -> "TravelAgent":
+        """Load the MCP tools and create the agent. Call once before ask()."""
+        client = MultiServerMCPClient(self.server_config())
+        # Load each server separately, so one failing server (e.g. 429 rate limit)
+        # doesn't take down the others.
+        self.tools, self.unavailable = [], {}
+        for name in self.server_config():
+            try:
+                self.tools += await client.get_tools(server_name=name)  # async: must be awaited
+            except BaseException as exc:  # MCP errors arrive wrapped in ExceptionGroups
+                if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                    raise
+                self.unavailable[name] = _root_error(exc)
+                print(f"Skipping '{name}' server: {self.unavailable[name]}")
+        if not self.tools:
+            raise RuntimeError(f"No MCP server is reachable: {self.unavailable}")
+        print(f"Loaded {len(self.tools)} tools: {', '.join(t.name for t in self.tools)}")
+
+        self.agent = create_agent(
+            model=self.build_model(),
+            tools=self.tools,
+            system_prompt=SYSTEM_PROMPT.format(today=date.today().isoformat()),
+            checkpointer=InMemorySaver(),  # remembers the conversation per thread_id
+        )
+        return self
+
+    async def ask(self, question: str) -> str:
+        """Send a question and return the agent's answer."""
+        answer, _ = await self.chat(question)
+        return answer
+
+    async def chat(self, question: str) -> tuple[str, list[dict]]:
+        """Send a question; return the answer and the tool calls made for it.
+
+        Each tool call is {"name", "args", "output"}.
+        """
+        if self.agent is None:
+            await self.setup()
+        # MCP tools are async-only, so the agent must be run with ainvoke.
+        response = await self.agent.ainvoke(
+            {"messages": [{"role": "user", "content": question}]},
+            config={"configurable": {"thread_id": self.thread_id}},
+        )
+        messages = response["messages"]
+        # Only look at messages from this turn (after the latest user message).
+        last_user = max(i for i, m in enumerate(messages) if m.type == "human")
+        turn = messages[last_user + 1:]
+
+        outputs = {m.tool_call_id: m.content for m in turn if m.type == "tool"}
+        steps = [
+            {"name": tc["name"], "args": tc["args"], "output": outputs.get(tc["id"], "")}
+            for m in turn
+            for tc in (getattr(m, "tool_calls", None) or [])
+        ]
+        return messages[-1].content, steps
+
+
+async def main():
+    agent = await TravelAgent().setup()
+    answer = await agent.ask(
+        "what is the weather in Munich in for 2026-11-16 till 2026-11-20, seach for best "
+        "price flight from Munich warmest day to Frankfurt . Look for best hotel for 1 day "
+        "in Frankfurt"
+        # "find flight from Munich to Kathmanduon 2027-07-01, and find hotel for 1 week in Kathmandu"
     )
-    print(response["messages"][-1].content)
+    print(answer)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,13 @@
-import math
+import json
 import os
 import pathlib
-import re
 import sqlite3
 import sys
-from collections import Counter
+import threading
+from contextlib import contextmanager
 
 import chromadb
+import httpx
 import pypdf
 import requests
 from langchain.agents import create_agent
@@ -16,6 +17,8 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from llmragap.bm25_search import KeywordIndex
 
 PERSIST_DIR = "C:\\Users\\Lenovo\\Downloads\\llmragap\\chroma_langchain_db"
 DATA_DIR = "C:\\Users\\Lenovo\\Downloads\\llmragap\\example_data"
@@ -39,45 +42,6 @@ SEARCH_MODES = ("semantic", "keyword", "hybrid")
 DEFAULT_SELECTION_MODE = "hybrid"
 
 
-# --- Keyword search helper (BM25) ---
-
-def tokenize(text: str) -> list[str]:
-    """Lowercase the text and split it into words and numbers."""
-    return re.findall(r"\w+", text.lower())
-
-
-class BM25Index:
-    """Minimal BM25 keyword index over a list of chunks.
-
-    Scores chunks by how often they contain the query words, giving more weight
-    to rare words (like "40" or "withdrawal") than to common ones (like "the").
-    """
-
-    def __init__(self, docs: list[Document], k1: float = 1.5, b: float = 0.75):
-        self.docs = docs
-        self.k1, self.b = k1, b
-        self.term_counts = [Counter(tokenize(d.page_content)) for d in docs]
-        self.doc_lengths = [sum(c.values()) for c in self.term_counts]
-        self.avg_length = (sum(self.doc_lengths) / len(docs)) if docs else 0.0
-        n = len(docs)
-        doc_freq = Counter(term for counts in self.term_counts for term in counts)
-        self.idf = {t: math.log(1 + (n - f + 0.5) / (f + 0.5)) for t, f in doc_freq.items()}
-
-    def search(self, query: str, k: int) -> list[Document]:
-        terms = tokenize(query)
-        scored = []
-        for i, (counts, length) in enumerate(zip(self.term_counts, self.doc_lengths)):
-            score = 0.0
-            for term in terms:
-                tf = counts.get(term, 0)
-                if tf:
-                    norm = self.k1 * (1 - self.b + self.b * length / self.avg_length)
-                    score += self.idf[term] * tf * (self.k1 + 1) / (tf + norm)
-            if score > 0:
-                scored.append((score, i))
-        scored.sort(reverse=True)
-        return [self.docs[i] for _, i in scored[:k]]
-
 
 class FilesEmbeddings:
     """Embeds PDF files into Chroma collections and searches them.
@@ -96,12 +60,20 @@ class FilesEmbeddings:
     ):
         self.persist_dir = persist_dir
         self.data_dir = data_dir
+        # Embedding usage as billed by OpenRouter (read from each API response).
+        # total_usage: every embedding call since this object was created (uploads and searches).
+        # last_upload_usage: the most recent embed_into_chroma/add_document/update_document.
+        self._usage_lock = threading.Lock()
+        self.total_usage = {"tokens": 0, "cost_usd": 0.0}
+        self.last_upload_usage = {"tokens": 0, "cost_usd": 0.0}
         # The same embedding model must be used for storing and for searching.
         self.embeddings = OpenAIEmbeddings(
             model=embedding_model,
             api_key=os.getenv("OPENROUTER_API_KEY"),
             base_url="https://openrouter.ai/api/v1",
             check_embedding_ctx_length=False,
+            # LangChain drops the "usage" block of the response; this hook reads it first.
+            http_client=httpx.Client(event_hooks={"response": [self._record_usage]}),
         )
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size, chunk_overlap=chunk_overlap, add_start_index=True
@@ -109,7 +81,48 @@ class FilesEmbeddings:
         # Opened collections, and keyword indexes built from their chunks.
         # Writing to a collection clears its keyword index so it is rebuilt.
         self._stores: dict[str, Chroma] = {}
-        self._keyword_indexes: dict[str, BM25Index] = {}
+        # collection name -> (chunks, BM25 index over their text)
+        self._keyword_indexes: dict[str, tuple[list[Document], KeywordIndex]] = {}
+
+    # --- Embedding cost ---
+
+    def _record_usage(self, response: httpx.Response) -> None:
+        """httpx response hook: add the tokens and cost OpenRouter reports to total_usage.
+
+        The response ends with {..., "usage": {"prompt_tokens", "cost", ...}, ...}.
+        Only that small block is decoded, not the (possibly huge) vector data.
+        """
+        if not response.url.path.endswith("/embeddings") or response.status_code != 200:
+            return
+        response.read()
+        text = response.text
+        start = text.rfind('"usage"')
+        if start == -1:
+            return
+        try:
+            usage, _ = json.JSONDecoder().raw_decode(text, text.index("{", start))
+        except ValueError:
+            return
+        with self._usage_lock:
+            self.total_usage["tokens"] += int(usage.get("prompt_tokens", 0))
+            self.total_usage["cost_usd"] += float(usage.get("cost", 0.0))
+
+    @contextmanager
+    def track_upload_cost(self):
+        """Measure the embedding cost of the code inside the block into last_upload_usage."""
+        before = dict(self.total_usage)
+        try:
+            yield
+        finally:
+            self.last_upload_usage = {
+                "tokens": self.total_usage["tokens"] - before["tokens"],
+                "cost_usd": self.total_usage["cost_usd"] - before["cost_usd"],
+            }
+            if self.last_upload_usage["tokens"]:
+                print(
+                    f"Embedding cost: {self.last_upload_usage['tokens']:,} tokens = "
+                    f"${self.last_upload_usage['cost_usd']:.6f}"
+                )
 
     # --- Storage ---
 
@@ -166,7 +179,8 @@ class FilesEmbeddings:
         """Load a PDF, split it into chunks, embed them and store them in the given collection."""
         all_splits = self.split_pdf(file_path)
         vector_store = self.load_chroma_db(collection_name)
-        vector_store.add_documents(all_splits, ids=self.make_chunk_ids(file_path, all_splits))
+        with self.track_upload_cost():
+            vector_store.add_documents(all_splits, ids=self.make_chunk_ids(file_path, all_splits))
         self._keyword_indexes.pop(collection_name, None)
         print(f"Stored {len(all_splits)} chunks in '{collection_name}'.")
         return vector_store
@@ -213,12 +227,13 @@ class FilesEmbeddings:
         to_add = [(i, d) for i, d in zip(new_ids, new_splits) if i not in old_ids]
         to_delete = list(old_ids - set(new_ids))
 
-        if to_update:
-            ids, docs = zip(*to_update)
-            vector_store.update_documents(ids=list(ids), documents=list(docs))
-        if to_add:
-            ids, docs = zip(*to_add)
-            vector_store.add_documents(documents=list(docs), ids=list(ids))
+        with self.track_upload_cost():
+            if to_update:
+                ids, docs = zip(*to_update)
+                vector_store.update_documents(ids=list(ids), documents=list(docs))
+            if to_add:
+                ids, docs = zip(*to_add)
+                vector_store.add_documents(documents=list(docs), ids=list(ids))
         if to_delete:
             vector_store.delete(ids=to_delete)
         self._keyword_indexes.pop(collection_name, None)
@@ -250,10 +265,12 @@ class FilesEmbeddings:
         # Chunks are matched by the "source" metadata set in load_pdf_pages().
         if vector_store.get(where={"source": file_path}, limit=1)["ids"]:
             print(f"{os.path.basename(file_path)} is already in '{collection_name}', skipping.")
+            self.last_upload_usage = {"tokens": 0, "cost_usd": 0.0}  # nothing embedded
             return 0
 
         new_splits = self.split_pdf(file_path)
-        vector_store.add_documents(new_splits, ids=self.make_chunk_ids(file_path, new_splits))
+        with self.track_upload_cost():
+            vector_store.add_documents(new_splits, ids=self.make_chunk_ids(file_path, new_splits))
         self._keyword_indexes.pop(collection_name, None)
         print(f"Added {len(new_splits)} chunks of {os.path.basename(file_path)} to '{collection_name}'.")
         return len(new_splits)
@@ -280,16 +297,22 @@ class FilesEmbeddings:
 
     # --- Retrieval ---
 
-    def get_keyword_index(self, collection_name: str) -> BM25Index:
-        """Build (once) and return the keyword index for a collection's stored chunks."""
+    def get_keyword_index(self, collection_name: str) -> tuple[list[Document], KeywordIndex]:
+        """Build (once) and return a collection's chunks and the BM25 index over them."""
         if collection_name not in self._keyword_indexes:
             data = self.load_chroma_db(collection_name).get(include=["documents", "metadatas"])
             docs = [
                 Document(page_content=text or "", metadata=meta or {}, id=doc_id)
                 for doc_id, text, meta in zip(data["ids"], data["documents"], data["metadatas"])
             ]
-            self._keyword_indexes[collection_name] = BM25Index(docs)
+            index = KeywordIndex([d.page_content for d in docs])
+            self._keyword_indexes[collection_name] = (docs, index)
         return self._keyword_indexes[collection_name]
+
+    def keyword_search(self, collection_name: str, query: str, k: int) -> list[Document]:
+        """BM25 keyword search (via bm25_search) over a collection's chunks."""
+        docs, index = self.get_keyword_index(collection_name)
+        return [docs[i] for i, _ in index.search(query, top_n=k, mode="text")]
 
     @staticmethod
     def reciprocal_rank_fusion(result_lists: list[list[Document]], k: int, rrf_k: int = 60) -> list[Document]:
@@ -322,12 +345,12 @@ class FilesEmbeddings:
         if selection_mode == "semantic":
             return store.similarity_search(query, k=k)
         if selection_mode == "keyword":
-            return self.get_keyword_index(collection_name).search(query, k)
+            return self.keyword_search(collection_name, query, k)
 
         # hybrid: take extra candidates from each method, then fuse the rankings
         candidates = k * 3
         semantic = store.similarity_search(query, k=candidates)
-        keyword = self.get_keyword_index(collection_name).search(query, candidates)
+        keyword = self.keyword_search(collection_name, query, candidates)
         return self.reciprocal_rank_fusion([semantic, keyword], k)
 
 

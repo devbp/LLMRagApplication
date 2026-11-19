@@ -27,6 +27,7 @@ dependencies = [
     "deepeval>=4.3.4",
     "pandas>=2.3.3",
     "langchain-mcp-adapters>=0.3.2",
+    "rank-bm25>=0.2.2",
 ]
 
 [project.scripts]
