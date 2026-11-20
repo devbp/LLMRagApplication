@@ -1,6 +1,13 @@
 import asyncio
+import base64
+import hashlib
+import hmac
+import re
+import secrets
+import time
 from datetime import date
 
+import httpx
 from dotenv import dotenv_values, find_dotenv, load_dotenv
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
@@ -28,15 +35,20 @@ Weather (xweather_* tools):
 - Rain timing, alerts, air quality and storms have their own xweather tools; use them
   when the user asks about those topics.
 
-Flights (AirTreks tools):
-- A flight on a specific date (one-way or return) -> ALWAYS fare_quote: it returns real
-  flights and prices. Do not use route_estimate for this; it is only a price range.
-- Multi-city or round-the-world trips -> itinerary_quote, then call
-  itinerary_quote_status immediately with the quoteReference it returns
-- Rough budget for a multi-city route without exact dates -> route_estimate
-- Route planning questions -> plan_route, route_suggest, hub_check, route_validate
-- trip_idea_create sends the trip to a human AirTreks consultant. Only call it after
-  the user has explicitly asked for that and confirmed their contact details.
+ Flights (Routerstack tools):
+ Search flight from Routerstack MCP server. Use the following valid tools for different flight queries
+
+
+
+# Flights (AirTreks tools):
+# - A flight on a specific date (one-way or return) -> ALWAYS fare_quote: it returns real
+#   flights and prices. Do not use route_estimate for this; it is only a price range.
+# - Multi-city or round-the-world trips -> itinerary_quote, then call
+#   itinerary_quote_status immediately with the quoteReference it returns
+# - Rough budget for a multi-city route without exact dates -> route_estimate
+# - Route planning questions -> plan_route, route_suggest, hub_check, route_validate
+# - trip_idea_create sends the trip to a human AirTreks consultant. Only call it after
+#   the user has explicitly asked for that and confirmed their contact details.
 
 Hotels (trivago tools):
 - Hotels in a city, area or near a landmark -> trivago-accommodation-radius-search
@@ -103,9 +115,75 @@ class TravelAgent:
         if not self.xweather_api_key:
             raise SystemExit("XWEATHER_API_KEY is missing in .env (format: <client_id>_<client_secret>)")
 
-    def server_config(self) -> dict:
-        """MCP servers the agent can use."""
+    def routestack_config(self) -> dict | None:
+        """RouteStack flights MCP server, or None (with a reason in self.unavailable).
+
+        RouteStack does not accept the API key as the Bearer token. The key and secret
+        are exchanged for a JWT (valid ~24h) at /mcp/auth/partner-token, signed with
+        HMAC-SHA256 so the secret itself is never sent.
+        """
+        api_key = (self.env.get("ROUTERSTACK_API_KEY") or "").strip()      # live_rst_...
+        api_secret = (self.env.get("ROUTERSTACK_API_SECRET") or "").strip()  # live_...
+        if not api_key or not api_secret:
+            self.unavailable["flights"] = (
+                "ROUTERSTACK_API_KEY (live_rst_...) and ROUTERSTACK_API_SECRET (live_...) must both be set in .env"
+            )
+            return None
+        if not api_key.startswith(("live_rst_", "test_rst_")):
+            self.unavailable["flights"] = (
+                "ROUTERSTACK_API_KEY should start with live_rst_ (or test_rst_); "
+                "a value starting with live_ alone is the API secret"
+            )
+            return None
+
+        timestamp = int(time.time())
+        nonce = secrets.token_hex(16)
+        digest = hmac.new(api_secret.encode(), f"{api_key}:{timestamp}:{nonce}".encode(), hashlib.sha256).digest()
+        signature = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()  # base64url, no padding
+        try:
+            response = httpx.post(
+                "https://mcp.routestack.ai/mcp/auth/partner-token",
+                json={"apiKey": api_key, "timestamp": timestamp, "nonce": nonce, "hmac": signature},
+                timeout=15,
+            )
+            if response.is_error:  # e.g. 401 "Partner account is not found or not active"
+                message = response.json().get("message") if "json" in response.headers.get("content-type", "") else None
+                self.unavailable["flights"] = f"RouteStack login failed ({response.status_code}): {message or response.text[:200]}"
+                return None
+            token = response.json()["token"]
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            self.unavailable["flights"] = f"RouteStack login failed: {str(exc).splitlines()[0]}"
+            return None
         return {
+            "url": "https://mcp.routestack.ai/mcp",
+            "transport": "http",
+            "headers": {"Authorization": f"Bearer {token}"},
+        }
+
+    def supabase_config(self) -> dict | None:
+        """Supabase MCP server, or None (with a reason in self.unavailable) if not configured.
+
+        The hosted server takes a personal access token (sbp_..., from Supabase > Account >
+        Access Tokens), NOT a project API key like the service role key. It is limited to
+        this project (project_ref, taken from SUPABASE_URL) and to read and write SQL.
+        """
+        token = (self.env.get("SUPABASE_ACCESS_TOKEN") or "").strip()
+        match = re.match(r"https://([a-z0-9]+)\.supabase\.co", (self.env.get("SUPABASE_URL") or "").strip())
+        if not token:
+            self.unavailable["supabase"] = "SUPABASE_ACCESS_TOKEN (personal access token, sbp_...) not set in .env"
+            return None
+        if not match:
+            self.unavailable["supabase"] = "SUPABASE_URL in .env is not like https://<project-ref>.supabase.co"
+            return None
+        return {
+            "url": f"https://mcp.supabase.com/mcp?project_ref={match.group(1)}&read_only=false",
+            "transport": "http",
+            "headers": {"Authorization": f"Bearer {token}"},
+        }
+
+    def server_config(self) -> dict:
+        """MCP servers the agent can use (servers that aren't configured are left out)."""
+        servers = {
             "hotels": {
                 "url": "https://mcp.trivago.com/mcp",
                 "transport": "http",
@@ -113,16 +191,23 @@ class TravelAgent:
                 # so skip it to avoid the "Session termination failed" message.
                 "terminate_on_close": False,
             },
-            "flights": {
-                "url": "https://mcp.airtreks.com/mcp",
-                "transport": "http",
-            },
+            # "flights": {
+            #     "url": "https://mcp.airtreks.com/mcp",
+            #     "transport": "http",
+            # },
             "weather": {
                 "url": "https://mcp.api.xweather.com/mcp",
                 "transport": "http",
                 "headers": {"Authorization": f"Bearer {self.xweather_api_key}"},
             },
         }
+        flights = self.routestack_config()
+        if flights:
+            servers["flights"] = flights
+        supabase = self.supabase_config()
+        if supabase:
+            servers["supabase"] = supabase
+        return servers
 
     def build_model(self):
         # API key goes on the model, not on create_agent.
@@ -134,11 +219,12 @@ class TravelAgent:
 
     async def setup(self) -> "TravelAgent":
         """Load the MCP tools and create the agent. Call once before ask()."""
-        client = MultiServerMCPClient(self.server_config())
+        self.tools, self.unavailable = [], {}
+        servers = self.server_config()  # may note unconfigured servers in self.unavailable
+        client = MultiServerMCPClient(servers)
         # Load each server separately, so one failing server (e.g. 429 rate limit)
         # doesn't take down the others.
-        self.tools, self.unavailable = [], {}
-        for name in self.server_config():
+        for name in servers:
             try:
                 self.tools += await client.get_tools(server_name=name)  # async: must be awaited
             except BaseException as exc:  # MCP errors arrive wrapped in ExceptionGroups
