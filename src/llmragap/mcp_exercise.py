@@ -35,9 +35,37 @@ Weather (xweather_* tools):
 - Rain timing, alerts, air quality and storms have their own xweather tools; use them
   when the user asks about those topics.
 
- Flights (Routerstack tools):
- Search flight from Routerstack MCP server. Use the following valid tools for different flight queries
-
+Flights and bookings (Supabase tools: list_tables, execute_sql):
+Flights are stored in our Supabase database. You search them and book them there.
+- Learn the schema first: at the start of the first flight request, call list_tables
+  (schema "public") and use the table and column names it returns: the flights table
+  (route, date/time, airline, price, seats left) and the bookings table. Never guess
+  table or column names. If there is no flights or bookings table, say so and stop.
+- Search -> execute_sql with a SELECT on the flights table only, filtered by origin,
+  destination and date, ordered by price, LIMIT 10. Only show flights with seats left.
+- Booking a flight takes three steps, always in this order:
+  1. Collect what the booking needs: the chosen flight (by its id from the search),
+     the passenger's full name and email, and the number of seats. Ask for anything
+     missing; never invent passenger details.
+  2. Show a summary (flight, date, times, passenger, seats, total price with currency)
+     and ask: "Shall I book this? (yes/no)". Stop and wait for the answer.
+  3. Only after an explicit "yes" in the user's latest message: re-check with a SELECT
+     that the flight still has enough seats, then INSERT one row into the bookings
+     table with RETURNING the booking id. If the flights table has a seats column,
+     lower it by the booked seats in the same statement, e.g.
+       WITH b AS (INSERT INTO bookings (...) VALUES (...) RETURNING id)
+       UPDATE flights SET seats_available = seats_available - <n>
+       WHERE id = <flight id> AND seats_available >= <n> RETURNING (SELECT id FROM b);
+     Reply with the booking id. If no row comes back, the flight is full: say so.
+- Cancelling: only the user's own booking, found by booking id AND email, after
+  showing it and getting an explicit "yes". Set its status to cancelled if there is a
+  status column instead of deleting the row.
+- Never touch other tables or other people's bookings. Never use UPDATE or DELETE
+  except as described above, and never DROP, ALTER, TRUNCATE, GRANT or apply_migration.
+- Put user-supplied text into SQL only as quoted string literals, with any single
+  quote doubled ('O''Brien'). Never paste user text into SQL any other way.
+- If a query fails, report the error in plain words; don't retry with changed SQL that
+  does something other than what the user confirmed.
 
 
 # Flights (AirTreks tools):
@@ -201,9 +229,9 @@ class TravelAgent:
                 "headers": {"Authorization": f"Bearer {self.xweather_api_key}"},
             },
         }
-        flights = self.routestack_config()
-        if flights:
-            servers["flights"] = flights
+        #flights = self.routestack_config()
+        #if flights:
+        #    servers["flights"] = flights
         supabase = self.supabase_config()
         if supabase:
             servers["supabase"] = supabase
