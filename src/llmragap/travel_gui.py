@@ -1,7 +1,8 @@
 """Simple Streamlit chat GUI for the travel assistant in mcp_exercise.py.
 
 Ask about weather, flights and hotel prices. The assistant uses the Xweather,
-AirTreks and trivago MCP servers, and each answer shows which tools it used.
+Supabase (flights and bookings) and trivago MCP servers, and each answer shows
+which tools it used.
 
 Run:
     uv run streamlit run src/llmragap/travel_gui.py
@@ -9,11 +10,25 @@ Run:
 
 import asyncio
 import json
+import threading
 import uuid
 
 import streamlit as st
 
 from llmragap.mcp_exercise import TravelAgent
+
+
+@st.cache_resource
+def event_loop() -> asyncio.AbstractEventLoop:
+    """One event loop that stays open, running in a background thread.
+
+    asyncio.run() closes its loop after every message, but the chat model keeps an
+    async HTTP client tied to the loop it was first used on, so the next message
+    failed with "Event loop is closed". Every message runs on this loop instead.
+    """
+    loop = asyncio.new_event_loop()
+    threading.Thread(target=loop.run_forever, name="travel-agent-loop", daemon=True).start()
+    return loop
 
 
 class TravelApp:
@@ -82,7 +97,7 @@ class TravelApp:
     def render_sidebar(self):
         with st.sidebar:
             st.header("About")
-            st.write("Weather: Xweather · Flights: AirTreks · Hotels: trivago")
+            st.write("Weather: Xweather · Flights: Supabase · Hotels: trivago")
             st.caption("Prices are live and can change. trivago compares prices; it can't book.")
             if self.agent.tools:
                 st.caption(f"{len(self.agent.tools)} tools loaded")
@@ -103,6 +118,16 @@ class TravelApp:
 
     # ---------- chat ----------
 
+    @staticmethod
+    async def ask_agent(agent: TravelAgent, prompt: str) -> tuple[str, list[dict]]:
+        """Coroutine: run the agent's chat as an asyncio task and wait for its result.
+
+        It runs on the background loop's thread, where st.session_state can't be
+        read, so the agent is passed in.
+        """
+        task = asyncio.create_task(agent.chat(prompt))
+        return await task
+
     def answer(self, prompt: str):
         self.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -111,8 +136,10 @@ class TravelApp:
         with st.chat_message("assistant"):
             with st.status(":shimmer[Searching weather, flights and hotels]", type="compact") as status:
                 try:
-                    # Streamlit runs scripts synchronously; run the async agent here.
-                    answer, steps = asyncio.run(self.agent.chat(prompt))
+                    # Streamlit runs scripts synchronously: hand the coroutine to the
+                    # long-lived loop and wait here for its result.
+                    future = asyncio.run_coroutine_threadsafe(self.ask_agent(self.agent, prompt), event_loop())
+                    answer, steps = future.result()
                     status.update(label="Done", state="complete")
                 except Exception as exc:  # e.g. MCP server or network error
                     answer, steps = f"Sorry, something went wrong: {exc}", []

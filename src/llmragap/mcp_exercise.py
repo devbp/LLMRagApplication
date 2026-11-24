@@ -1,13 +1,7 @@
 import asyncio
-import base64
-import hashlib
-import hmac
 import re
-import secrets
-import time
 from datetime import date
 
-import httpx
 from dotenv import dotenv_values, find_dotenv, load_dotenv
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
@@ -67,17 +61,6 @@ Flights are stored in our Supabase database. You search them and book them there
 - If a query fails, report the error in plain words; don't retry with changed SQL that
   does something other than what the user confirmed.
 
-
-# Flights (AirTreks tools):
-# - A flight on a specific date (one-way or return) -> ALWAYS fare_quote: it returns real
-#   flights and prices. Do not use route_estimate for this; it is only a price range.
-# - Multi-city or round-the-world trips -> itinerary_quote, then call
-#   itinerary_quote_status immediately with the quoteReference it returns
-# - Rough budget for a multi-city route without exact dates -> route_estimate
-# - Route planning questions -> plan_route, route_suggest, hub_check, route_validate
-# - trip_idea_create sends the trip to a human AirTreks consultant. Only call it after
-#   the user has explicitly asked for that and confirmed their contact details.
-
 Hotels (trivago tools):
 - Hotels in a city, area or near a landmark -> trivago-accommodation-radius-search
   (preferred)
@@ -127,8 +110,8 @@ class TravelAgent:
 
     Usage:
         agent = TravelAgent()
-        await agent.setup()                 # connect to the servers, build the agent
-        answer = await agent.ask("...")     # follow-up questions remember earlier ones
+        answer = await agent.ask("...")     # first call connects to the servers and builds the agent
+        # follow-up questions remember earlier ones
     """
 
     def __init__(self, model_name: str = "openrouter:openai/gpt-4o-mini", thread_id: str = "default"):
@@ -142,51 +125,6 @@ class TravelAgent:
         self.xweather_api_key = self.env.get("XWEATHER_API_KEY")
         if not self.xweather_api_key:
             raise SystemExit("XWEATHER_API_KEY is missing in .env (format: <client_id>_<client_secret>)")
-
-    def routestack_config(self) -> dict | None:
-        """RouteStack flights MCP server, or None (with a reason in self.unavailable).
-
-        RouteStack does not accept the API key as the Bearer token. The key and secret
-        are exchanged for a JWT (valid ~24h) at /mcp/auth/partner-token, signed with
-        HMAC-SHA256 so the secret itself is never sent.
-        """
-        api_key = (self.env.get("ROUTERSTACK_API_KEY") or "").strip()      # live_rst_...
-        api_secret = (self.env.get("ROUTERSTACK_API_SECRET") or "").strip()  # live_...
-        if not api_key or not api_secret:
-            self.unavailable["flights"] = (
-                "ROUTERSTACK_API_KEY (live_rst_...) and ROUTERSTACK_API_SECRET (live_...) must both be set in .env"
-            )
-            return None
-        if not api_key.startswith(("live_rst_", "test_rst_")):
-            self.unavailable["flights"] = (
-                "ROUTERSTACK_API_KEY should start with live_rst_ (or test_rst_); "
-                "a value starting with live_ alone is the API secret"
-            )
-            return None
-
-        timestamp = int(time.time())
-        nonce = secrets.token_hex(16)
-        digest = hmac.new(api_secret.encode(), f"{api_key}:{timestamp}:{nonce}".encode(), hashlib.sha256).digest()
-        signature = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()  # base64url, no padding
-        try:
-            response = httpx.post(
-                "https://mcp.routestack.ai/mcp/auth/partner-token",
-                json={"apiKey": api_key, "timestamp": timestamp, "nonce": nonce, "hmac": signature},
-                timeout=15,
-            )
-            if response.is_error:  # e.g. 401 "Partner account is not found or not active"
-                message = response.json().get("message") if "json" in response.headers.get("content-type", "") else None
-                self.unavailable["flights"] = f"RouteStack login failed ({response.status_code}): {message or response.text[:200]}"
-                return None
-            token = response.json()["token"]
-        except (httpx.HTTPError, KeyError, ValueError) as exc:
-            self.unavailable["flights"] = f"RouteStack login failed: {str(exc).splitlines()[0]}"
-            return None
-        return {
-            "url": "https://mcp.routestack.ai/mcp",
-            "transport": "http",
-            "headers": {"Authorization": f"Bearer {token}"},
-        }
 
     def supabase_config(self) -> dict | None:
         """Supabase MCP server, or None (with a reason in self.unavailable) if not configured.
@@ -219,19 +157,12 @@ class TravelAgent:
                 # so skip it to avoid the "Session termination failed" message.
                 "terminate_on_close": False,
             },
-            # "flights": {
-            #     "url": "https://mcp.airtreks.com/mcp",
-            #     "transport": "http",
-            # },
             "weather": {
                 "url": "https://mcp.api.xweather.com/mcp",
                 "transport": "http",
                 "headers": {"Authorization": f"Bearer {self.xweather_api_key}"},
             },
         }
-        #flights = self.routestack_config()
-        #if flights:
-        #    servers["flights"] = flights
         supabase = self.supabase_config()
         if supabase:
             servers["supabase"] = supabase
@@ -250,16 +181,19 @@ class TravelAgent:
         self.tools, self.unavailable = [], {}
         servers = self.server_config()  # may note unconfigured servers in self.unavailable
         client = MultiServerMCPClient(servers)
-        # Load each server separately, so one failing server (e.g. 429 rate limit)
-        # doesn't take down the others.
-        for name in servers:
-            try:
-                self.tools += await client.get_tools(server_name=name)  # async: must be awaited
-            except BaseException as exc:  # MCP errors arrive wrapped in ExceptionGroups
-                if isinstance(exc, (KeyboardInterrupt, SystemExit)):
-                    raise
-                self.unavailable[name] = _root_error(exc)
+        # Connect to all servers at the same time: one task per server.
+        tasks = {name: asyncio.create_task(client.get_tools(server_name=name)) for name in servers}
+        # return_exceptions=True: a failing server (e.g. 429 rate limit) comes back as its
+        # exception instead of cancelling the other tasks. Results keep the order of `tasks`.
+        results = await asyncio.gather(*tasks.values(), return_exceptions=True)
+        for name, result in zip(tasks, results):
+            if isinstance(result, (KeyboardInterrupt, SystemExit)):
+                raise result
+            if isinstance(result, BaseException):  # MCP errors arrive wrapped in ExceptionGroups
+                self.unavailable[name] = _root_error(result)
                 print(f"Skipping '{name}' server: {self.unavailable[name]}")
+            else:
+                self.tools += result
         if not self.tools:
             raise RuntimeError(f"No MCP server is reachable: {self.unavailable}")
         print(f"Loaded {len(self.tools)} tools: {', '.join(t.name for t in self.tools)}")
@@ -304,7 +238,7 @@ class TravelAgent:
 
 
 async def main():
-    agent = await TravelAgent().setup()
+    agent = TravelAgent()  # ask() sets the agent up on the first call
     answer = await agent.ask(
         "what is the weather in Munich in for 2026-11-16 till 2026-11-20, seach for best "
         "price flight from Munich warmest day to Frankfurt . Look for best hotel for 1 day "

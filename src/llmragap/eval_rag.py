@@ -61,7 +61,7 @@ class RagEvaluator:
     def __init__(
         self,
         rag_agent: RagAgent,
-        judge_model: str = "openai/gpt-4o-mini",
+        judge_model: str = "openai/gpt-6-luna",
         threshold: float = 0.7,
     ):
         self.rag_agent = rag_agent
