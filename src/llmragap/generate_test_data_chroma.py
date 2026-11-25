@@ -21,7 +21,7 @@ from deepeval.models import OpenRouterModel
 from deepeval.synthesizer import Synthesizer
 from dotenv import load_dotenv
 
-from llmragap.RAG_Pdf import CIVIL_CODE_COLLECTION, INSURANCE_COLLECTION, FilesEmbeddings
+from llmragap.RAG_Pdf import CIVIL_CODE_COLLECTION, INSURANCE_COLLECTION, MEDICINE_COLLECTION, FilesEmbeddings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
@@ -62,7 +62,7 @@ def main() -> None:
     parser.add_argument(
         "--collection",
         default=INSURANCE_COLLECTION,
-        choices=[INSURANCE_COLLECTION, CIVIL_CODE_COLLECTION],
+        choices=[INSURANCE_COLLECTION, CIVIL_CODE_COLLECTION, MEDICINE_COLLECTION],
         help="Chroma collection to read chunks from",
     )
     parser.add_argument("--contexts", type=int, default=5, help="number of contexts to build")

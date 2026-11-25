@@ -18,4 +18,6 @@ example_data/
 # Chroma vector database
 chroma_langchain_db/
 chroma.sqlite3
-europebus-db/
+
+# DeepEval run artifacts
+.deepeval/

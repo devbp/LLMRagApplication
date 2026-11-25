@@ -1,54 +1,44 @@
-# LLM Q&A
+# llmragap
 
-A minimal Streamlit app that sends one question to `openai/gpt-4o-mini` through
-LangChain's OpenRouter integration.
+Retrieval-augmented generation (RAG) over German law PDFs, with evaluation.
 
-## Run locally
+- **Retrieval:** the Insurance Contract Act (VVG) and the Civil Code (BGB) are split
+  into chunks, embedded through OpenRouter and stored in Chroma. The agent searches
+  them with semantic, keyword (BM25) or hybrid search.
+- **Evaluation:** DeepEval generates test cases and scores the agent's answers for
+  answer relevancy and faithfulness to the retrieved passages.
 
-1. Copy `.env.example` to `.env` and fill in your OpenRouter API key, Supabase
-   project URL, and Supabase service role key (Project Settings → API).
-2. In the Supabase SQL editor, run [`supabase/schema.sql`](supabase/schema.sql)
-   to create the `app_users` table.
-3. Install the project dependencies with `uv sync`.
-4. Add a login user (you will be asked for the password; only a bcrypt hash is
-   stored):
+## Files
 
-   ```powershell
-   uv run python -m llmragap.create_user alice
-   ```
+| File | Purpose |
+|---|---|
+| `src/llmragap/RAG_Pdf.py` | Embedding into Chroma, search modes, the RAG agent |
+| `src/llmragap/bm25_search.py` | BM25 keyword search |
+| `src/llmragap/chat_gui.py` | Streamlit chat: ask questions, upload PDFs, see costs |
+| `src/llmragap/generate_test_data.py` | Test cases generated from a PDF |
+| `src/llmragap/generate_test_data_chroma.py` | Test cases generated from chunks already in Chroma |
+| `src/llmragap/eval_rag.py` | Runs test cases through the agent and scores them |
+| `eval_data/` | Test cases and evaluation results (JSON) |
+| `example_data/` | The law PDFs (not in git) |
 
-5. Start the auth API in one terminal:
+## Setup
 
-   ```powershell
-   uv run uvicorn llmragap.auth_api:app --port 8000
-   ```
+1. Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.
+2. Install dependencies: `uv sync`
+3. Put `englisch_vvg.pdf` and `englisch_bgb.pdf` in `example_data/`.
 
-6. Start the app in another terminal:
+## Run
 
-   ```powershell
-   uv run streamlit run src/llmragap/main_app.py
-   ```
+```powershell
+# Embed the PDFs (only if not embedded yet) and ask sample questions
+uv run python src/llmragap/RAG_Pdf.py
 
-The Q&A page is shown only after logging in. The Streamlit app sends the
-username and password to `POST /auth/login` on the auth API (`AUTH_API_URL`),
-which looks the user up in Supabase and checks the password hash. It returns
-`200` with the username, or `401` if the login is wrong. Interactive API docs
-are at <http://127.0.0.1:8000/docs>.
+# Chat app
+uv run streamlit run src/llmragap/chat_gui.py
 
-The service role key bypasses Supabase row-level security, so keep it in the
-backend's `.env` only and never expose it to a browser.
-The `.env` file is gitignored; do not commit your key.
+# Generate test cases from the stored chunks, then evaluate
+uv run python src/llmragap/generate_test_data_chroma.py --collection insurance_docs
+uv run python src/llmragap/eval_rag.py --input eval_data/insurance_docs_test_cases.json --mode hybrid
+```
 
-## Dependency versions
-
-The app's added direct dependencies are pinned in `pyproject.toml`:
-
-- [`streamlit==1.65.0`](https://pypi.org/project/streamlit/1.65.0/) is the newest
-  PyPI release compatible with the project's Python `>=3.10` requirement.
-- [`python-dotenv==1.2.4`](https://pypi.org/project/python-dotenv/1.2.4/) and
-  [`langchain-openrouter==0.2.9`](https://pypi.org/project/langchain-openrouter/0.2.9/)
-  were the latest PyPI releases when checked on November 3, 2026.
-- The OpenRouter integration package and invocation follow LangChain's
-  [ChatOpenRouter documentation](https://docs.langchain.com/oss/python/integrations/chat/openrouter).
-
-`uv.lock` records resolved versions for the full dependency graph.
+Evaluation results are written to `eval_data/law_eval_results.json` (change with `--output`).

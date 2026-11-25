@@ -1,7 +1,7 @@
 """Simple Streamlit chatbot for the RagAgent in RAG_Pdf.py.
 
-The agent answers law questions (VVG / BGB search), music store data questions
-(SQL) and general questions. Each answer shows which tools the agent used.
+The agent answers law questions (VVG / BGB search), medicine questions (search of the
+uploaded medicine documents) and general questions. Each answer shows which tools the agent used.
 The sidebar also lets you upload PDFs and add them to a Chroma collection.
 
 Run:
@@ -17,11 +17,11 @@ from llmragap.RAG_Pdf import (
     CIVIL_CODE_COLLECTION,
     DEFAULT_SELECTION_MODE,
     INSURANCE_COLLECTION,
+    MEDICINE_COLLECTION,
     SEARCH_MODES,
     ChatCostCallback,
     FilesEmbeddings,
     RagAgent,
-    SqlDatabase,
 )
 
 
@@ -33,10 +33,10 @@ class ChatApp:
     agent) are cached with st.cache_resource.
     """
 
-    TITLE = "Law & data chatbot"
+    TITLE = "Law & medicine chatbot"
     SUGGESTIONS = {
         ":blue[:material/gavel:] Limitation period": "What is the standard limitation period under the Civil Code?",
-        ":green[:material/database:] Top artist": "Which artist has the most albums?",
+        ":green[:material/policy:] Cancel insurance": "When can a policyholder cancel an insurance contract?",
         ":orange[:material/public:] General question": "What is the capital of Nepal?",
     }
     MAX_TOOL_OUTPUT_CHARS = 2000  # tool outputs longer than this are cut off in the UI
@@ -44,6 +44,7 @@ class ChatApp:
     COLLECTIONS = {
         "Insurance law (VVG)": INSURANCE_COLLECTION,
         "Civil code (BGB)": CIVIL_CODE_COLLECTION,
+        "Medicine": MEDICINE_COLLECTION,
     }
 
     def __init__(self):
@@ -74,9 +75,7 @@ class ChatApp:
     @st.cache_resource
     def get_agent(selection_mode: str) -> RagAgent:
         """Build one agent per search mode."""
-        sql_db = SqlDatabase()
-        sql_db.ensure_downloaded()
-        return RagAgent(ChatApp.get_vectors_embeddings(), selection_mode, sql_db=sql_db)
+        return RagAgent(ChatApp.get_vectors_embeddings(), selection_mode)
 
     # --- Agent ---
 
@@ -108,7 +107,7 @@ class ChatApp:
     def render_header(self) -> None:
         st.set_page_config(page_title=self.TITLE, page_icon=":material/smart_toy:")
         st.title(f":material/smart_toy: {self.TITLE}")
-        st.caption("Ask about German insurance or civil law, the music store database, or anything else.")
+        st.caption("Ask about German insurance or civil law, your medicine documents, or anything else.")
 
     def render_sidebar(self) -> None:
         with st.sidebar:
