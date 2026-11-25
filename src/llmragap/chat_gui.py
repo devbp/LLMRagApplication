@@ -9,15 +9,18 @@ Run:
 """
 
 import os
+import re
 
 import streamlit as st
 from langchain_core.messages import AIMessage, ToolMessage
 
+from llmragap.bm25_search import query_terms
 from llmragap.RAG_Pdf import (
     CIVIL_CODE_COLLECTION,
     DEFAULT_SELECTION_MODE,
     INSURANCE_COLLECTION,
     MEDICINE_COLLECTION,
+    RRF_K,
     SEARCH_MODES,
     ChatCostCallback,
     FilesEmbeddings,
@@ -93,9 +96,15 @@ class ChatApp:
 
         # Only look at messages from this turn (after the conversation we sent).
         new_messages = result_messages[len(history):]
-        outputs = {m.tool_call_id: m.text for m in new_messages if isinstance(m, ToolMessage)}
+        tool_messages = {m.tool_call_id: m for m in new_messages if isinstance(m, ToolMessage)}
         steps = [
-            {"tool": call["name"], "input": call["args"], "output": outputs.get(call["id"], "")}
+            {
+                "tool": call["name"],
+                "input": call["args"],
+                "output": tool_messages[call["id"]].text if call["id"] in tool_messages else "",
+                # search trace (query, collection, mode, ranked chunks with scores) for the UI
+                "trace": getattr(tool_messages.get(call["id"]), "artifact", None),
+            }
             for m in new_messages
             if isinstance(m, AIMessage)
             for call in m.tool_calls
@@ -314,6 +323,120 @@ class ChatApp:
                         output = output[: self.MAX_TOOL_OUTPUT_CHARS] + "\n..."
                     st.text(output)
 
+    # --- Visualising the retrieval ---
+
+    # Characters that would be read as Markdown/LaTeX in chunk text.
+    MARKDOWN_SPECIAL = re.compile(r"([\\`*_{}\[\]<>#|$~])")
+
+    @staticmethod
+    def cited_pages(answer: str) -> set[int]:
+        """Page numbers the answer mentions, e.g. "page 12", "pages 12-13", "p. 7"."""
+        pages = set()
+        for match in re.finditer(r"\b(?:pages?|p\.)\s*(\d+(?:\s*(?:[-–,&]|and)\s*\d+)*)", answer, re.IGNORECASE):
+            pages.update(int(n) for n in re.findall(r"\d+", match.group(1)))
+        return pages
+
+    @classmethod
+    def highlight(cls, text: str, query: str) -> str:
+        """Chunk text as Markdown, with the query's search words highlighted."""
+        text = cls.MARKDOWN_SPECIAL.sub(r"\\\1", text)
+        terms, _ = query_terms(query, "text")  # the same words BM25 searches for
+        if not terms:
+            return text
+        pattern = re.compile(r"\b(" + "|".join(map(re.escape, sorted(set(terms), key=len, reverse=True))) + r")\b", re.I)
+        return pattern.sub(r":orange-background[\1]", text)
+
+    def show_retrieval(self, steps: list[dict], answer: str) -> None:
+        """'How this answer was found': one tab per document search the agent made."""
+        traces = [s["trace"] for s in steps if s.get("trace")]
+        if not traces:
+            return
+        cited = self.cited_pages(answer)
+        with st.expander("How this answer was found", icon=":material/manage_search:"):
+            labels = [f"{i}. {t['collection']}" for i, t in enumerate(traces, start=1)]
+            for tab, trace in zip(st.tabs(labels), traces):
+                with tab:
+                    self.show_trace(trace, cited)
+
+    def show_trace(self, trace: dict, cited: set[int]) -> None:
+        """One search: query, where it searched, ranked chunks, score chart and context."""
+        results = trace["results"]
+        mode = trace["mode"]
+
+        st.markdown("**1 · Search query** written by the agent")
+        st.code(trace["query"], language=None, wrap_lines=True)
+        st.markdown(
+            f"**2 · Searched** `{trace['collection']}` with **{mode}** search "
+            f"→ {self.plural(len(results), 'chunk')} sent to the model"
+        )
+        if not results:
+            st.info("No matching passages found.", icon=":material/search_off:")
+            return
+
+        # 3. Ranked chunks with the score of each search method
+        st.markdown("**3 · Retrieved chunks**")
+        rows = []
+        for r in results:
+            row = {"#": r["rank"], "File": r["file"], "Page": r["page"], "Cited": r["page"] in cited}
+            if mode in ("semantic", "hybrid"):
+                row["Semantic rank"] = r["semantic_rank"]
+                row["Distance"] = r["semantic_distance"]
+            if mode in ("keyword", "hybrid"):
+                row["Keyword rank"] = r["keyword_rank"]
+                row["BM25"] = r["keyword_score"]
+            if mode == "hybrid":
+                row["Fused score"] = r["fused_score"]
+            rows.append(row)
+        bm25_max = max((r["keyword_score"] or 0) for r in results) or 1.0
+        st.dataframe(
+            rows,
+            hide_index=True,
+            column_config={
+                "#": st.column_config.NumberColumn(width="small"),
+                "Page": st.column_config.NumberColumn(width="small"),
+                "Cited": st.column_config.CheckboxColumn(help="The answer mentions this page number"),
+                "Semantic rank": st.column_config.NumberColumn(
+                    help="Position among the semantic search candidates (empty = not found by it)"
+                ),
+                "Distance": st.column_config.NumberColumn(format="%.3f", help="Embedding distance; lower = closer in meaning"),
+                "Keyword rank": st.column_config.NumberColumn(
+                    help="Position among the BM25 keyword candidates (empty = not found by it)"
+                ),
+                "BM25": st.column_config.ProgressColumn(
+                    format="%.2f", min_value=0.0, max_value=bm25_max, help="BM25 keyword score; higher = better match"
+                ),
+                "Fused score": st.column_config.ProgressColumn(
+                    format="%.4f", min_value=0.0, max_value=2 / (RRF_K + 1),
+                    help=f"Reciprocal rank fusion: 1/({RRF_K} + rank) per method, added up",
+                ),
+            },
+        )
+
+        # 4. Why each chunk was picked
+        labels = [f"#{r['rank']} · p. {r['page']}" for r in results]
+        if mode == "hybrid":
+            st.markdown("**4 · Why each chunk was picked** – contribution of each method to the fused score")
+            chart = {
+                "Chunk": labels,
+                "Semantic": [1 / (RRF_K + r["semantic_rank"]) if r["semantic_rank"] else 0.0 for r in results],
+                "Keyword": [1 / (RRF_K + r["keyword_rank"]) if r["keyword_rank"] else 0.0 for r in results],
+            }
+            st.bar_chart(chart, x="Chunk", y=["Semantic", "Keyword"], horizontal=True, sort=False,
+                         x_label="Fused score", y_label="", height=60 + 40 * len(results))
+        else:
+            metric = "Distance (lower = closer)" if mode == "semantic" else "BM25 score"
+            key = "semantic_distance" if mode == "semantic" else "keyword_score"
+            st.markdown(f"**4 · Scores** – {metric}")
+            st.bar_chart({"Chunk": labels, metric: [r[key] for r in results]}, x="Chunk", y=metric,
+                         horizontal=True, sort=False, y_label="", height=60 + 40 * len(results))
+
+        # 5. The text the model received
+        st.markdown("**5 · Context sent to the model** (search words highlighted)")
+        for r in results:
+            mark = " · :green[cited]" if r["page"] in cited else ""
+            with st.expander(f"#{r['rank']} · {r['file']} · page {r['page']}{mark}", type="step"):
+                st.markdown(self.highlight(r["text"], trace["query"]))
+
     @staticmethod
     def show_message_cost(cost: dict | None) -> None:
         """Small line under an answer: what the model calls for it cost."""
@@ -331,6 +454,7 @@ class ChatApp:
             with st.chat_message(msg["role"]):
                 if msg["role"] == "assistant":
                     self.show_steps(msg.get("steps", []))
+                    self.show_retrieval(msg.get("steps", []), msg["content"])
                 st.markdown(msg["content"])
                 if msg["role"] == "assistant":
                     self.show_message_cost(msg.get("cost"))
@@ -359,6 +483,7 @@ class ChatApp:
             except Exception as e:
                 answer, steps, cost = f":red[Error: {e}]", [], None
             self.show_steps(steps)
+            self.show_retrieval(steps, answer)
             st.markdown(answer)
             self.show_message_cost(cost)
 
