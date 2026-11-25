@@ -9,7 +9,9 @@ Run:
 """
 
 import os
+import uuid
 
+import httpx
 import streamlit as st
 from langchain_core.messages import AIMessage, ToolMessage
 
@@ -56,6 +58,9 @@ class ChatApp:
         if "chat_costs" not in st.session_state:
             # Running totals for agent answers; kept when the chat is cleared.
             st.session_state.chat_costs = {"answers": 0, "tokens": 0, "agent_usd": 0.0, "search_usd": 0.0}
+        if "session_id" not in st.session_state:
+            # Identifies this session's row in the session_costs table; a new login gets a new one.
+            st.session_state.session_id = str(uuid.uuid4())
         self.selection_mode = DEFAULT_SELECTION_MODE
 
     @property
@@ -243,6 +248,38 @@ class ChatApp:
                 f"**{n_files} files:** {', '.join(parts)} · {totals['chunks']:,} chunks · "
                 f"{self.format_cost(totals)}"
             )
+        if totals["added"]:  # something was embedded, so the session cost changed
+            self.save_session_cost()
+
+    def save_session_cost(self) -> None:
+        """Send this session's running cost totals to the auth API (session_costs table).
+
+        Only for logged-in users (the username comes from main_app.py); when chat_gui.py
+        runs on its own there is no user, so nothing is saved. A failure only shows a
+        toast: the chat keeps working.
+        """
+        username = st.session_state.get("username")
+        if not username:
+            return
+        uploads = st.session_state.upload_costs
+        chat = st.session_state.chat_costs
+        payload = {
+            "username": username,
+            "answers": chat["answers"],
+            "tokens": chat["tokens"],
+            "agent_usd": chat["agent_usd"],
+            "search_usd": chat["search_usd"],
+            "upload_files": len(uploads),
+            "upload_tokens": sum(u["tokens"] for u in uploads),
+            "upload_usd": sum(u["cost_usd"] for u in uploads),
+        }
+        api_url = os.getenv("AUTH_API_URL", "http://127.0.0.1:8000").rstrip("/")
+        try:
+            response = httpx.put(f"{api_url}/sessions/{st.session_state.session_id}/cost", json=payload, timeout=5)
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            # Shown by run() as a toast; kept in the session so it survives the st.rerun() after an answer.
+            st.session_state.cost_save_error = f"Could not save the session cost: {e}"
 
     def render_cost_summary(self) -> None:
         """Sidebar: everything this session cost (as billed by OpenRouter), with a breakdown."""
@@ -368,6 +405,7 @@ class ChatApp:
             totals["tokens"] += cost["input_tokens"] + cost["output_tokens"]
             totals["agent_usd"] += cost["cost_usd"]
             totals["search_usd"] += cost["search_embedding_usd"]
+            self.save_session_cost()
 
         self.messages.append({"role": "assistant", "content": answer, "steps": steps, "cost": cost})
         st.rerun()
@@ -375,6 +413,8 @@ class ChatApp:
     def run(self) -> None:
         """Draw the page; called on every Streamlit rerun."""
         self.render_header()
+        if error := st.session_state.pop("cost_save_error", None):
+            st.toast(error, icon=":material/cloud_off:")
         self.render_sidebar()
         self.render_history()
         if prompt := self.get_prompt():

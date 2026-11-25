@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import secrets
+import uuid
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
@@ -16,6 +18,7 @@ from supabase import Client, create_client
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 USERS_TABLE = "app_users"
+SESSION_COSTS_TABLE = "session_costs"  # created by supabase/session_costs.sql
 
 # POST /auth/users needs the X-Admin-Key header (matching ADMIN_API_KEY in .env) when True.
 # TEMPORARILY False: anyone who can reach the API can create users. Set back to True
@@ -56,6 +59,25 @@ class CreateUserRequest(BaseModel):
 
 class CreateUserResponse(BaseModel):
     username: str
+
+
+class SessionCostRequest(BaseModel):
+    """Running totals of one chat session (the whole session so far, not just the last answer)."""
+
+    username: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9_.-]+$")
+    answers: int = Field(ge=0)
+    tokens: int = Field(ge=0)
+    agent_usd: float = Field(ge=0)
+    search_usd: float = Field(ge=0)
+    upload_files: int = Field(ge=0)
+    upload_tokens: int = Field(ge=0)
+    upload_usd: float = Field(ge=0)
+
+
+class SessionCostResponse(BaseModel):
+    session_id: uuid.UUID
+    username: str
+    total_usd: float
 
 
 @lru_cache
@@ -171,3 +193,41 @@ def create_user(body: CreateUserRequest) -> CreateUserResponse:
         raise HTTPException(status_code=503, detail="Could not create the user right now.") from None
 
     return CreateUserResponse(username=body.username)
+
+
+@app.put("/sessions/{session_id}/cost", response_model=SessionCostResponse)
+def save_session_cost(session_id: uuid.UUID, body: SessionCostRequest) -> SessionCostResponse:
+    """Create or update the cost row of one chat session for a user.
+
+    Called again whenever the session's cost changes, with the new running totals, so
+    the row always holds the session total. A session can't be moved to another user.
+    """
+    try:
+        db = get_supabase()
+        user = db.table(USERS_TABLE).select("id").eq("username", body.username).limit(1).execute()
+        if not user.data:
+            raise HTTPException(status_code=404, detail="Unknown user.")
+        user_id = user.data[0]["id"]
+
+        existing = (
+            db.table(SESSION_COSTS_TABLE).select("user_id").eq("session_id", str(session_id)).limit(1).execute()
+        )
+        if existing.data and existing.data[0]["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="This session belongs to another user.")
+
+        row = {
+            "session_id": str(session_id),
+            "user_id": user_id,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            **body.model_dump(exclude={"username"}),
+        }
+        # started_at is only set by the table default on the first insert.
+        db.table(SESSION_COSTS_TABLE).upsert(row, on_conflict="session_id").execute()
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Saving session cost failed")
+        raise HTTPException(status_code=503, detail="Could not save the session cost right now.") from None
+
+    total = body.agent_usd + body.search_usd + body.upload_usd
+    return SessionCostResponse(session_id=session_id, username=body.username, total_usd=total)

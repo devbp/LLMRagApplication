@@ -33,7 +33,8 @@ Retrieval-augmented generation (RAG) over German law PDFs, with evaluation.
 # Embed the PDFs (only if not embedded yet) and ask sample questions
 uv run python src/llmragap/RAG_Pdf.py
 
-# Chat app with login: start the auth API, then the app (login page -> chat page)
+# Chat app with login: start the auth API, then the app (login page -> chat page).
+# Once, in the Supabase SQL editor: run supabase/session_costs.sql (cost of each session per user).
 uv run uvicorn llmragap.auth_api:app --port 8000
 uv run streamlit run src/llmragap/main_app.py
 
