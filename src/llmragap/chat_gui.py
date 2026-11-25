@@ -2,28 +2,29 @@
 
 The agent answers law questions (VVG / BGB search), medicine questions (search of the
 uploaded medicine documents) and general questions. Each answer shows which tools the agent used.
-The sidebar also lets you upload PDFs and add them to a Chroma collection.
+Adding documents and resetting collections is on the settings page (settings_gui.py).
 
 Run:
     uv run streamlit run src/llmragap/chat_gui.py
 """
 
-import os
-import uuid
-
-import httpx
 import streamlit as st
 from langchain_core.messages import AIMessage, ToolMessage
 
+from llmragap.app_resources import get_files_embeddings
 from llmragap.RAG_Pdf import (
-    CIVIL_CODE_COLLECTION,
     DEFAULT_SELECTION_MODE,
-    INSURANCE_COLLECTION,
-    MEDICINE_COLLECTION,
     SEARCH_MODES,
     ChatCostCallback,
     FilesEmbeddings,
     RagAgent,
+)
+from llmragap.session_cost import (
+    init_session_costs,
+    money,
+    save_session_cost,
+    session_total_usd,
+    show_cost_save_error,
 )
 
 
@@ -42,25 +43,11 @@ class ChatApp:
         ":orange[:material/public:] General question": "What is the capital of Nepal?",
     }
     MAX_TOOL_OUTPUT_CHARS = 2000  # tool outputs longer than this are cut off in the UI
-    # Collections you can upload into (label shown in the UI -> Chroma collection name).
-    COLLECTIONS = {
-        "Insurance law (VVG)": INSURANCE_COLLECTION,
-        "Civil code (BGB)": CIVIL_CODE_COLLECTION,
-        "Medicine": MEDICINE_COLLECTION,
-    }
 
     def __init__(self):
         if "messages" not in st.session_state:
             st.session_state.messages = []
-        if "upload_costs" not in st.session_state:
-            # One entry per embedded file: {"file", "collection", "chunks", "tokens", "cost_usd"}
-            st.session_state.upload_costs = []
-        if "chat_costs" not in st.session_state:
-            # Running totals for agent answers; kept when the chat is cleared.
-            st.session_state.chat_costs = {"answers": 0, "tokens": 0, "agent_usd": 0.0, "search_usd": 0.0}
-        if "session_id" not in st.session_state:
-            # Identifies this session's row in the session_costs table; a new login gets a new one.
-            st.session_state.session_id = str(uuid.uuid4())
+        init_session_costs()  # upload_costs, chat_costs, session_id, ... (shared with other pages)
         self.selection_mode = DEFAULT_SELECTION_MODE
 
     @property
@@ -71,10 +58,9 @@ class ChatApp:
     # --- Cached resources (shared across reruns and sessions) ---
 
     @staticmethod
-    @st.cache_resource
     def get_vectors_embeddings() -> FilesEmbeddings:
-        """Open the Chroma vector collections once."""
-        return FilesEmbeddings()
+        """The Chroma collections, opened once and shared with the settings page."""
+        return get_files_embeddings()
 
     @staticmethod
     @st.cache_resource
@@ -125,53 +111,9 @@ class ChatApp:
             if st.button("Clear chat", icon=":material/delete:", width="stretch"):
                 self.clear_chat()
             st.divider()
-            self.render_upload_form()
             self.render_cost_summary()
-            st.divider()
-            self.render_reset_form()
 
-    # --- Adding files to the vector database ---
-
-    def render_upload_form(self) -> None:
-        """Sidebar form: upload PDFs and add them to the chosen collection."""
-        st.subheader("Add documents")
-        with st.form("upload_form", clear_on_submit=True, border=False):
-            uploads = st.file_uploader(
-                "PDF files",
-                type="pdf",
-                accept_multiple_files=True,
-                help="Select or drop several PDFs at once; they are embedded one after another.",
-            )
-            collection_label = st.selectbox("Collection", list(self.COLLECTIONS))
-            replace = st.checkbox(
-                "Replace if already stored",
-                help="Off: files already in the collection are skipped. "
-                "On: their chunks are re-embedded and updated in place.",
-            )
-            submitted = st.form_submit_button("Add to database", icon=":material/upload:", width="stretch")
-
-        if submitted:
-            if not uploads:
-                st.warning("Choose at least one PDF first.")
-            else:
-                self.add_files(uploads, self.COLLECTIONS[collection_label], replace)
-
-    def save_upload(self, upload) -> str:
-        """Save an uploaded file into the data folder and return its full path."""
-        vectors = self.get_vectors_embeddings()
-        os.makedirs(vectors.data_dir, exist_ok=True)
-        # basename() keeps a crafted file name from writing outside the data folder.
-        file_path = os.path.join(vectors.data_dir, os.path.basename(upload.name))
-        with open(file_path, "wb") as f:
-            f.write(upload.getbuffer())
-        return file_path
-
-    @staticmethod
-    def money(usd: float) -> str:
-        """$0.0123 for normal amounts; tiny ones keep their digits ($0.00000039, not $0.0000)."""
-        if usd == 0 or usd >= 0.001:
-            return f"${usd:.4f}"
-        return "$" + f"{usd:.8f}".rstrip("0")
+    money = staticmethod(money)
 
     @staticmethod
     def plural(n: int, word: str) -> str:
@@ -181,157 +123,44 @@ class ChatApp:
     def format_cost(cls, usage: dict) -> str:
         return f"{usage['tokens']:,} tokens, {cls.money(usage['cost_usd'])}"
 
-    def add_files(self, uploads, collection_name: str, replace: bool) -> None:
-        """Embed each uploaded PDF into the collection and report what happened."""
-        vectors = self.get_vectors_embeddings()
-        n_files = len(uploads)
-        multiple = n_files > 1
-        # Overall bar: each file is an equal share; inside a file it moves with its chunks.
-        overall = st.progress(0, text=f"0/{n_files} files done") if multiple else None
-        file_bar = st.progress(0)
-        results = st.container()  # one result line per file, in upload order
-        totals = {"added": 0, "skipped": 0, "failed": 0, "chunks": 0, "tokens": 0, "cost_usd": 0.0}
-
-        for index, upload in enumerate(uploads):
-            name = os.path.basename(upload.name)
-            label = f"{name} ({index + 1}/{n_files})" if multiple else name
-            file_bar.progress(0, text=f"{label}: reading and splitting PDF...")
-
-            def show_progress(done: int, total: int, index=index, label=label) -> None:
-                fraction = done / total if total else 1.0
-                file_bar.progress(fraction, text=f"{label}: embedding {done}/{total} chunks")
-                if overall:
-                    overall.progress(
-                        (index + fraction) / n_files,
-                        text=f"{index}/{n_files} files done · embedding {name}",
-                    )
-
-            try:
-                file_path = self.save_upload(upload)
-                if replace:
-                    count = vectors.update_document(collection_name, file_path, progress=show_progress)
-                else:
-                    count = vectors.add_document(collection_name, file_path, progress=show_progress)
-            except Exception as e:
-                totals["failed"] += 1
-                results.error(f"{name}: {e}")
-                count = None
-            else:
-                if not count:
-                    totals["skipped"] += 1
-                    results.info(f"{name} is already in '{collection_name}', skipped (no cost).")
-                else:
-                    usage = vectors.last_upload_usage
-                    totals["added"] += 1
-                    totals["chunks"] += count
-                    totals["tokens"] += usage["tokens"]
-                    totals["cost_usd"] += usage["cost_usd"]
-                    action = "stored" if replace else "added"
-                    results.success(
-                        f"{name}: {count} chunks {action} in '{collection_name}' ({self.format_cost(usage)})."
-                    )
-                    st.session_state.upload_costs.append(
-                        {"file": name, "collection": collection_name, "chunks": count, **usage}
-                    )
-            if overall:
-                overall.progress((index + 1) / n_files, text=f"{index + 1}/{n_files} files done")
-
-        file_bar.empty()
-        if overall:
-            overall.empty()
-            parts = [f"{totals['added']} embedded"]
-            if totals["skipped"]:
-                parts.append(f"{totals['skipped']} skipped")
-            if totals["failed"]:
-                parts.append(f"{totals['failed']} failed")
-            st.markdown(
-                f"**{n_files} files:** {', '.join(parts)} · {totals['chunks']:,} chunks · "
-                f"{self.format_cost(totals)}"
-            )
-        if totals["added"]:  # something was embedded, so the session cost changed
-            self.save_session_cost()
-
-    def save_session_cost(self) -> None:
-        """Send this session's running cost totals to the auth API (session_costs table).
-
-        Only for logged-in users (the username comes from main_app.py); when chat_gui.py
-        runs on its own there is no user, so nothing is saved. A failure only shows a
-        toast: the chat keeps working.
-        """
-        username = st.session_state.get("username")
-        if not username:
-            return
-        uploads = st.session_state.upload_costs
-        chat = st.session_state.chat_costs
-        payload = {
-            "username": username,
-            "answers": chat["answers"],
-            "tokens": chat["tokens"],
-            "agent_usd": chat["agent_usd"],
-            "search_usd": chat["search_usd"],
-            "upload_files": len(uploads),
-            "upload_tokens": sum(u["tokens"] for u in uploads),
-            "upload_usd": sum(u["cost_usd"] for u in uploads),
-        }
-        api_url = os.getenv("AUTH_API_URL", "http://127.0.0.1:8000").rstrip("/")
-        try:
-            response = httpx.put(f"{api_url}/sessions/{st.session_state.session_id}/cost", json=payload, timeout=5)
-            response.raise_for_status()
-        except httpx.HTTPError as e:
-            # Shown by run() as a toast; kept in the session so it survives the st.rerun() after an answer.
-            st.session_state.cost_save_error = f"Could not save the session cost: {e}"
+    @staticmethod
+    def save_session_cost() -> None:
+        """Send this session's running cost totals to the auth API (see session_cost.py)."""
+        save_session_cost()
 
     def render_cost_summary(self) -> None:
         """Sidebar: everything this session cost (as billed by OpenRouter), with a breakdown."""
         uploads = st.session_state.upload_costs
         chat = st.session_state.chat_costs
+        testgen = st.session_state.testgen_costs
+        evals = st.session_state.eval_costs
         upload_usd = sum(u["cost_usd"] for u in uploads)
         upload_tokens = sum(u["tokens"] for u in uploads)
-        total = upload_usd + chat["agent_usd"] + chat["search_usd"]
 
         with st.container(border=True):
-            st.metric(":material/payments: Total cost this session", self.money(total), border=False)
+            st.metric(":material/payments: Total cost this session", self.money(session_total_usd()), border=False)
             st.table(
                 {
-                    "Part": ["Agent model", "Search embeddings", "Upload embeddings"],
-                    "Cost": [self.money(chat["agent_usd"]), self.money(chat["search_usd"]), self.money(upload_usd)],
+                    "Part": ["Agent model", "Search embeddings", "Upload embeddings", "Test generation", "Evaluation"],
+                    "Cost": [
+                        self.money(chat["agent_usd"]),
+                        self.money(chat["search_usd"]),
+                        self.money(upload_usd),
+                        self.money(testgen["usd"]),
+                        self.money(evals["usd"]),
+                    ],
                     "Details": [
                         f"{self.plural(chat['answers'], 'answer')}, {chat['tokens']:,} tokens",
                         "questions embedded for document search",
                         f"{self.plural(len(uploads), 'file')}, {upload_tokens:,} tokens",
+                        f"{self.plural(testgen['runs'], 'run')}, {self.plural(testgen['cases'], 'test case')}",
+                        f"{self.plural(evals['runs'], 'run')}, {self.plural(evals['cases'], 'test case')}",
                     ],
                 },
                 hide_index=True,
             )
             for u in reversed(uploads[-5:]):  # latest uploads first
                 st.caption(f"{u['file']}: {u['chunks']} chunks · {self.format_cost(u)}")
-
-    # --- Resetting a collection ---
-
-    def render_reset_form(self) -> None:
-        """Sidebar form: empty a collection. Needs a ticked confirmation box."""
-        st.subheader("Reset collection")
-        with st.form("reset_form", clear_on_submit=True, border=False):
-            collection_label = st.selectbox("Collection to reset", list(self.COLLECTIONS))
-            confirmed = st.checkbox("I understand this deletes all chunks in the collection")
-            submitted = st.form_submit_button(
-                "Reset collection", icon=":material/delete_forever:", type="primary", width="stretch"
-            )
-
-        if submitted:
-            if not confirmed:
-                st.warning("Tick the confirmation box to reset the collection.")
-            else:
-                self.reset_collection(self.COLLECTIONS[collection_label])
-
-    def reset_collection(self, collection_name: str) -> None:
-        """Empty the collection and report how many chunks were deleted."""
-        try:
-            with st.spinner(f"Resetting {collection_name}..."):
-                deleted = self.get_vectors_embeddings().reset_collection(collection_name)
-            st.success(f"'{collection_name}' is now empty ({deleted} chunks deleted).")
-        except Exception as e:
-            st.error(f"Could not reset '{collection_name}': {e}")
 
     def clear_chat(self) -> None:
         st.session_state.messages = []
@@ -413,8 +242,7 @@ class ChatApp:
     def run(self) -> None:
         """Draw the page; called on every Streamlit rerun."""
         self.render_header()
-        if error := st.session_state.pop("cost_save_error", None):
-            st.toast(error, icon=":material/cloud_off:")
+        show_cost_save_error()
         self.render_sidebar()
         self.render_history()
         if prompt := self.get_prompt():

@@ -30,11 +30,11 @@ from deepeval import evaluate
 from deepeval.dataset import Golden
 from deepeval.evaluate.configs import CacheConfig
 from deepeval.evaluate.types import EvaluationResult
-from deepeval.metrics import AnswerRelevancyMetric, FaithfulnessMetric
-from deepeval.models import OpenRouterModel
+from deepeval.metrics import AnswerRelevancyMetric, FaithfulnessMetric,ContextualPrecisionMetric,ContextualRecallMetric
 from deepeval.test_case import LLMTestCase
 from langchain_core.messages import ToolMessage
 
+from llmragap.llm_costs import TrackedOpenRouterModel
 from llmragap.RAG_Pdf import (
     CIVIL_CODE_COLLECTION,
     CIVIL_CODE_PDF,
@@ -42,6 +42,7 @@ from llmragap.RAG_Pdf import (
     INSURANCE_COLLECTION,
     INSURANCE_PDF,
     SEARCH_MODES,
+    ChatCostCallback,
     FilesEmbeddings,
     RagAgent,
 )
@@ -49,6 +50,12 @@ from llmragap.RAG_Pdf import (
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_INPUT_JSON = os.path.join(PROJECT_ROOT, "eval_data", "law_test_cases.json")
 DEFAULT_OUTPUT_JSON = os.path.join(PROJECT_ROOT, "eval_data", "law_eval_results.json")
+
+
+def dated_results_path(name: str) -> str:
+    """eval_data/<name>_eval_results_<YYYY-MM-DD_HH-MM-SS>.json, so runs never overwrite each other."""
+    stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    return os.path.join(PROJECT_ROOT, "eval_data", f"{name}_eval_results_{stamp}.json")
 
 
 class RagEvaluator:
@@ -65,11 +72,15 @@ class RagEvaluator:
         threshold: float = 0.7,
     ):
         self.rag_agent = rag_agent
-        # The model that grades the answers (not the one being tested).
-        self.judge = OpenRouterModel(model=judge_model, api_key=os.getenv("OPENROUTER_API_KEY"))
+        # The model that grades the answers (not the one being tested); it adds up its own cost.
+        self.judge = TrackedOpenRouterModel(model=judge_model, api_key=os.getenv("OPENROUTER_API_KEY"))
+        # Agent answers and their search embeddings, added up by run_pipeline().
+        self.agent_usage = {"calls": 0, "tokens": 0, "cost_usd": 0.0, "search_usd": 0.0}
         self.metrics = [
-            AnswerRelevancyMetric(threshold=threshold, model=self.judge),
-            FaithfulnessMetric(threshold=threshold, model=self.judge),
+            AnswerRelevancyMetric(threshold=threshold, model=self.judge,include_reason=True),
+            FaithfulnessMetric(threshold=threshold, model=self.judge,include_reason=True),
+            ContextualPrecisionMetric(threshold=threshold, model=self.judge,include_reason=True),
+            ContextualRecallMetric(threshold=threshold, model=self.judge,include_reason=True),
         ]
 
     @staticmethod
@@ -101,7 +112,17 @@ class RagEvaluator:
         retrieved_chunks are the passages the agent's search tools returned, which is
         what FaithfulnessMetric checks the answer against.
         """
-        messages = self.rag_agent.invoke(question)["messages"]
+        cost = ChatCostCallback()
+        files = self.rag_agent.files
+        search_before = files.total_usage["cost_usd"]
+        messages = self.rag_agent.agent.invoke(
+            {"messages": [{"role": "user", "content": question}]}, config={"callbacks": [cost]}
+        )["messages"]
+        self.agent_usage["calls"] += cost.calls
+        self.agent_usage["tokens"] += cost.input_tokens + cost.output_tokens
+        self.agent_usage["cost_usd"] += cost.cost_usd
+        self.agent_usage["search_usd"] += files.total_usage["cost_usd"] - search_before
+
         answer = messages[-1].text
         retrieved_chunks = [
             chunk
@@ -162,12 +183,16 @@ class RagEvaluator:
                 }
                 for m in r.metrics_data or []
             }
+            chunks = r.retrieval_context or []
             cases.append(
                 {
                     "input": r.input,
                     "expected_output": r.expected_output,
                     "actual_output": r.actual_output,
-                    "retrieval_context": r.retrieval_context or [],
+                    # 0 means the agent answered without retrieving anything: then the
+                    # contextual scores are 0 and Faithfulness (nothing to contradict) means nothing.
+                    "retrieved_chunks": len(chunks),
+                    "retrieval_context": chunks,
                     "passed": r.success,
                     "metrics": metrics,
                 }
@@ -180,6 +205,7 @@ class RagEvaluator:
 
         passed = sum(1 for c in cases if c["passed"])
         report = {
+            "cost": self.cost_summary(),
             "summary": {
                 "run_at": datetime.now().isoformat(timespec="seconds"),
                 "selection_mode": self.rag_agent.selection_mode,
@@ -188,6 +214,7 @@ class RagEvaluator:
                 "total": len(cases),
                 "passed": passed,
                 "failed": len(cases) - passed,
+                "no_retrieval": sum(1 for c in cases if c["retrieved_chunks"] == 0),
                 "average_scores": {name: average(name) for name in metric_names},
             },
             "results": cases,
@@ -200,14 +227,37 @@ class RagEvaluator:
 
         print(f"Saved results to {output_path} ({passed}/{len(cases)} test cases passed)")
         print("Average scores:", report["summary"]["average_scores"])
+        if report["summary"]["no_retrieval"]:
+            print(f"Warning: {report['summary']['no_retrieval']} test case(s) retrieved no chunks.")
+        cost = report["cost"]
+        print(
+            f"Cost: ${cost['total_usd']:.6f} (agent ${cost['agent_usd']:.6f}, "
+            f"search ${cost['search_usd']:.6f}, judge ${cost['judge_usd']:.6f}; {cost['tokens']:,} tokens)"
+        )
         return report
 
-    def run(self, input_json: str, output_json: str) -> dict:
-        """Load test cases, run the agent, score the answers and save the results."""
-        goldens = self.load_goldens(input_json)
+    def cost_summary(self) -> dict:
+        """What this evaluator's runs cost so far, as billed by OpenRouter."""
+        judge = self.judge.usage
+        agent = self.agent_usage
+        return {
+            "agent_usd": round(agent["cost_usd"], 8),
+            "search_usd": round(agent["search_usd"], 8),
+            "judge_usd": round(judge["cost_usd"], 8),
+            "total_usd": round(agent["cost_usd"] + agent["search_usd"] + judge["cost_usd"], 8),
+            "tokens": agent["tokens"] + judge["tokens"],
+            "model_calls": agent["calls"] + judge["calls"],
+        }
+
+    def run_goldens(self, goldens: list[Golden], output_json: str) -> dict:
+        """Run the agent on the goldens, score the answers and save the results."""
         test_cases = self.build_test_cases(goldens)
         result = self.evaluate(test_cases)
         return self.save_results(result, output_json)
+
+    def run(self, input_json: str, output_json: str) -> dict:
+        """Load test cases from a JSON file, run the agent, score the answers and save the results."""
+        return self.run_goldens(self.load_goldens(input_json), output_json)
 
 
 def main() -> None:
@@ -222,7 +272,8 @@ def main() -> None:
     #files.ensure_embedded(INSURANCE_COLLECTION, INSURANCE_PDF)
     #files.ensure_embedded(CIVIL_CODE_COLLECTION, CIVIL_CODE_PDF)
 
-    rag_agent = RagAgent(files, args.mode)
+    # Every test case is about the documents, so the agent must search before answering.
+    rag_agent = RagAgent(files, args.mode, require_search=True)
     print(f"Evaluating with {args.mode} search.")
 
     RagEvaluator(rag_agent).run(args.input, args.output)

@@ -1,0 +1,157 @@
+{
+  "cost": {
+    "agent_usd": 0.00152985,
+    "search_usd": 2.86e-06,
+    "judge_usd": 0.00914503,
+    "total_usd": 0.01067774,
+    "tokens": 47252,
+    "model_calls": 39
+  },
+  "summary": {
+    "run_at": "2026-11-25T16:03:51",
+    "selection_mode": "hybrid",
+    "model": "openrouter:openai/gpt-4o-mini",
+    "judge_model": "openai/gpt-6-luna (OpenRouter)",
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "no_retrieval": 0,
+    "average_scores": {
+      "Answer Relevancy": 0.786,
+      "Faithfulness": 0.956,
+      "Contextual Precision": 0.861,
+      "Contextual Recall": 0.926
+    }
+  },
+  "results": [
+    {
+      "input": "Why is close medical supervision essential for administering melarsoprol given its high toxicity and adverse effects?",
+      "expected_output": "Close medical supervision is essential for administering melarsoprol due to its high toxicity and the risk of numerous adverse effects, including reactive encephalopathy, which can manifest as seizures, coma, and mental disorders. These complications typically occur between the 5th and 8th day of treatment, necessitating careful monitoring to manage any severe reactions promptly.",
+      "actual_output": "Close medical supervision is essential for administering melarsoprol due to its high toxicity and numerous potential adverse effects. Melarsoprol is used as a treatment for the meningoencephalitic stage of African trypanosomiasis, caused by *Trypanosoma brucei gambiense* and *T. b. rhodesiense*. \n\nSome of the adverse effects associated with melarsoprol include the risk of reactive encephalopathy, which can manifest as repeated or prolonged seizures, coma, and mental disorders. These complications typically arise between the 5th and 8th day of treatment but can occur later, including after the patient has been discharged from the hospital. \n\nGiven these serious risks, patients receiving melarsoprol must be treated in a hospital environment under close medical supervision to monitor for any adverse reactions and to provide immediate medical intervention if necessary (source: guideline-339-en, page 448). \n\nThis is information from the documents, not medical advice. Please ask a doctor or pharmacist about your situation.",
+      "retrieved_chunks": 4,
+      "retrieval_context": [
+        "[guideline-339-en (1).pdf, page 447]\nPage 448 / 663\nMELARSOPROL injectable\nLast updated: December 2023\n \nPrescription under medical supervision\n \nDue to high toxicity and numerous adverse effects of melarsoprol, patients must be\ntreated in hospital, under close medical supervision.\n \nTherapeutic action\nIndications\nForms and strengths, route of administration\nDosage and duration\nContra-indications, adverse effects, precautions\n \nTrypanocide (arsenical derivative)\nMeningoencephalitic stage of African trypanosomiasis due to T. b. gambiense and T. b.\nrhodesiense\n180 mg in 5 ml ampoule (36 mg/ml), 3.6 % solution in propylene glycol, for slow IV injection\nDO NOT ADMINISTER BY IM or SC INJECTION.\nChild and adult: 2.2 mg/kg (max. 5 ml) once daily for 10 days\nMay cause:\nreactive encephalopathy (5-10% of cases): repeated or prolonged seizures, coma, mental\ndisorders, usually between the 5  and the 8  day of treatment (but sometimes later, even after\nthe patient has been discharged);\nth th",
+        "[guideline-339-en (1).pdf, page 491]\nPage 492 / 663\nRemarks\nStorage\n   –  Below 25 °C \nevent of persisting heavy proteinuria, treatment should be discontinued.\nEnsure that the patient is well hydrated.\nPregnancy: although suramin is toxic, it is recommended to treat pregnant women with\nrhodesiense trypanosomiasis at the haemolymphatic stage. Suramin is also used at the\nmeningoencephalitic stage until the woman can be given melarsoprol after delivery, as melarsoprol\nis contra-indicated during pregnancy.\nSuramin is not administered at the meningoencephalitic stage (except in pregnant women) as it\npoorly penetrates into the cerebrospinal ﬂuid.\nDue to its toxicity, suramin is no longer used for the treatment of onchocerciasis.",
+        "[guideline-339-en (1).pdf, page 490]\nPage 491 / 663\nSURAMIN injectable\nLast updated: December 2023\n \nPrescription under medical supervision\n \nDue to high toxicity and numerous adverse effects of suramin, patients must be treated in\nhospital, under close medical supervision.\n \nTherapeutic action\nIndications\nForms and strengths, route of administration\nDosage and duration\n \nContra-indications, adverse effects, precautions\n \nTrypanocide\nHaemolymphatic stage of African trypanosomiasis due to T. b. rhodesiense\nPowder for injection in 1 g vial, to be dissolved in 10 ml of water for injection to obtain a 10%\nsolution, for slow IV injection (or slow infusion in 500 ml of 0.9% NaCl).\nDO NOT ADMINISTER BY IM or SC INJECTION.\nChild and adult: 4 to 5 mg/kg by slow IV at D1 (test dose) then, in the absence of reaction after the\ntest dose, 20 mg/kg by slow IV at D3, D10, D17, D24 and D31 (max. 1 g per injection)\nDo not administer in patients with severe renal or hepatic disease.\nMay cause:",
+        "[WHO-MVP-EMP-IAU-2019.06-eng (1).pdf, page 29]\nnifurtimox * \nTablet: 120 mg. \n* Only to be used in combination with eflornithine, for  the \ntreatment of Trypanosoma brucei gambiense infection. \nComplementary List  \nmelarsoprol [c] Injection: 3.6% solution in 5- mL ampoule (180 mg of active compound). \n6.5.5.2 American trypanosomiasis"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 0.714,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.71 because the response was partly relevant to melarsoprol’s risks, but its disclaimer and general advice did not explain why close medical supervision is essential during treatment.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because no contradictions are listed, so the actual output aligns with the retrieval context. Great job!",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the first node in the retrieval contexts directly supports close supervision, citing melarsoprol’s “high toxicity and numerous adverse effects.” The lower-ranked second, third, and fourth nodes should rank below it: they discuss suramin or only melarsoprol’s formulation, not why close supervision is needed. Excellent ranking.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because sentence 1 is fully supported by node 1 in retrieval context, which describes melarsoprol’s high toxicity, need for close medical supervision, listed adverse effects, and the timing of reactive encephalopathy. Great match!",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What specific precautions should be taken when administering this medication, particularly regarding contraindications and monitoring requirements?",
+      "expected_output": "When administering this medication, specific precautions include:\n\n1. **Contraindications**: Do not administer to patients with hypercalcaemia, hypercalciuria, severe renal impairment, or those receiving cardiac glycosides. Avoid use in neonates receiving ceftriaxone with calcium gluconate due to the risk of precipitation.\n\n2. **Monitoring Requirements**: Monitor calcaemia and calciuria during treatment. For intravenous administration, monitor serum-calcium levels and ECG changes to detect hypercalcaemia, especially if treatment is prolonged or if plasma-calcium levels cannot be monitored.\n\n3. **Adverse Effects**: Be aware of potential side effects such as dizziness, gastrointestinal disturbances, and signs of hypercalcaemia (nausea, vomiting, increased thirst, polyuria). If severe symptoms occur, stop treatment immediately.\n\n4. **Special Populations**: Use caution in patients with hepatic impairment, heart failure, or cardiac rhythm disorders, and consider reducing dosage in these cases. \n\nAlways ensure to follow storage guidelines (below 25 °C) and check the specific instructions for use regarding the oral solution.",
+      "actual_output": "When administering this medication, the following precautions should be taken regarding contraindications and monitoring requirements:\n\n**Contraindications:**\n1. **Renal Disease:** Do not administer to patients with severe renal disease.\n2. **Cardiac Glycosides:** Avoid usage in patients who are receiving cardiac glycosides, particularly with ceftriaxone in neonates.\n3. **Respiratory, Renal, or Hepatic Impairment:** Exercise caution when administering to patients with severe impairment in these functions, as it can lead to accumulation.\n4. **Children and Older Patients:** Special caution is required when administering to children and older patients, as well as those with mild to moderate function impairments in respiratory, renal, or hepatic systems.\n\n**Adverse Effects:**\nThe medication may cause:\n- Tingling sensations, dizziness, and warm flushes.\n- Tissue necrosis if extravasation occurs.\n- Symptoms of hypercalcemia (nausea, vomiting, thirst, polyuria) if the injection is too rapid.\n- Potential severe reactions like hypotension, bradycardia, arrhythmia, or cardiac arrest.\n- Drowsiness, dizziness, and behavioural disturbances in certain patients.\n- Respiratory depression and hypotension in varying degrees, particularly if administered rapidly or in large doses.\n\n**Monitoring Requirements:**\n- **Calcium Levels:** Monitor serum-calcium levels to prevent hypercalcemia. Regular checks are necessary, especially if prolonged treatment is anticipated and the patient cannot undergo plasma-calcium monitoring.\n- **Respiratory Rate and Blood Pressure:** Close monitoring is required during and after administration, particularly in patients with compromised respiratory function.\n- **Electrocardiogram (ECG):** Continuous ECG monitoring is essential if higher doses or infusion rates are used to detect potential cardiac conduction and rhythm disorders.\n- **Infusion Site:** Monitor the infusion site for any redness or inflammation, especially with potassium chloride to prevent complications.\n\nThese precautions and monitoring steps help ensure patient safety and the effective administration of the medication. \n\nThis is information from the documents, not medical advice. Please ask a doctor or pharmacist about your situation.",
+      "retrieved_chunks": 4,
+      "retrieval_context": [
+        "[guideline-339-en (1).pdf, page 373]\nPage 374 / 663\nContra-indications, adverse effects, precautions\nRemarks\nStorage\n   –  Below 25 °C \nAccording to clinical response and plasma-calcium levels. \nFor hypocalcaemia, change to oral route as soon as possible.\nDo not administer to patients with severe renal disease or patients receiving cardiac glycosides.\nDo not administer ceftriaxone to neonates receiving calcium gluconate (risk of precipitation of\nceftriaxone-calcium salts in lungs and kidneys). \nMay cause:\ntingling sensations, warm ﬂushes, dizziness;\ntissue necrosis in the event of extravasation;\nhypercalcaemia in the event of too rapid IV injection or overtreatment. First signs of\nhypercalcaemia include nausea, vomiting, thirst and polyuria. In severe cases, risk\nof hypotension, bradycardia, arrhythmia, syncope and cardiac arrest.\nHypercalcaemia can be conﬁrmed by monitoring of serum-calcium levels and ECG changes. Do not\nuse in prolonged treatment if plasma-calcium levels cannot be monitored.",
+        "[guideline-339-en (1).pdf, page 475]\nPage 476 / 663\nContra-indications, adverse effects, precautions\nRemarks\nStorage\n   – Below 25 °C\nIf maintenance treatment is indicated after the loading dose: change to oral route as soon as\npossible.\nDo not administer to patients with severe impairment of respiratory, renal or hepatic function (risk\nof accumulation).\nAdminister with caution in children, older patients and patients with mild to moderate impairment of\nrespiratory, renal or hepatic function.\nMay cause :\ndrowsiness, dizziness, headache, behavioural disturbances;\ndose-dependant respiratory depression;\nhypotension, apnoea, laryngospasm, shock, especially if administered rapidly by IV route and if\nlarge doses are administered;\nhaematologic disorders, gastrointestinal disturbances;\nhypersensitivity reactions sometimes severe;\ncoma in the event of overdose.\nMonitor closely respiratory rate and blood pressure during and after administration.\nAvoid or monitor the combination with:\nmeﬂoquine (reduced effect of PB);",
+        "[guideline-339-en (1).pdf, page 482]\nhyperkalaemia).\nMay cause:\npain at infusion site, venous irritation and phlebitis (use a large peripheral vein to reduce these\nrisks);\nin the event of too rapid administration or overdose: hyperkalaemia, cardiac conduction and\nrhythm disorders, potentially fatal;\nin the event of extravasation: necrosis.\nMonitor closely:\ninfusion rate; use an infusion pump or syringe pump if possible to prevent unintentional bolus;\ninfusion site for redness and inﬂammation.\nMonitor electrolytes if possible to determine the need for further infusions and to avoid\nhyperkalaemia.\nHigher dose or infusion rate requires continuous electrocardiogram monitoring.\nPotassium chloride is also used to prevent hypokalaemia in patients unable to meet their daily\nrequirements by oral route : daily K  requirements are 2 to 3 mmol/kg daily in children and 1 to 2\nmmol/kg daily in adults.\n+\nA 7.5% potassium solution contains 1 mmol of K /ml; a 10% solution contains 1.34 mmol/ml ; a",
+        "[guideline-339-en (1).pdf, page 254]\nPage 255 / 663\nContra-indications, adverse effects, precautions\nRemarks\nStorage\nAdminister with caution to patients with hepatic impairment (reduce dosage), heart\nfailure, atrioventricular block, cardiac rhythm disorders, hypotension.\nMay cause:\ndrowsiness (caution when driving/operating machinery), dizziness, headache, behavioural\ndisturbances, insomnia;\ngastrointestinal disturbances (nausea, vomiting), vitamin D deﬁciency (consider\nsupplementation), osteoporosis, hepatotoxicity and gingival hypertrophy;\nrarely: haematologic disorders (thrombocytopenia, agranulocytosis, anaemia), hypersensitivity\nreactions (including severe cutaneous reactions such as Stevens-Johnson, Lyell and DRESS\nsyndromes). In these cases, stop treatment. Early symptoms such as fever, rash, mouth ulcers\nand bleeding require immediate medical attention. \nIf possible, perform at least FBC and liver enzymes, at baseline then regularly during treatment.\nAvoid or monitor the combination with:"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 0.895,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is high because the response largely addresses medication precautions, but it is not higher because it includes an irrelevant note about potassium chloride infusion sites and a generic disclaimer that does not specify the medication’s contraindications or monitoring requirements.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 0.867,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.87 because the actual output softens the instruction not to administer the loading dose to patients with severe respiratory, renal, or hepatic impairment into mere caution, and recommends prolonged treatment with regular checks even when plasma calcium cannot be monitored, contrary to the context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 0.75,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.75 because the first node in the retrieval contexts directly supports the precautions, including “severe renal disease,” “patients receiving cardiac glycosides,” and monitoring “serum-calcium levels and ECG changes.” It is not higher because the irrelevant second and third nodes appear before the relevant fourth node: the second concerns another medication’s respiratory monitoring, and the third concerns potassium chloride and infusion monitoring. The fourth node adds some relevant special-population guidance, including “hepatic impairment (reduce dosage), heart failure,” and “cardiac rhythm disorders.”",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 0.778,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.78 because sentences 2–6 are mostly supported by nodes in retrieval context 1, 2, and 4: node 1 supports several contraindications, neonatal ceftriaxone warning, calcium/ECG monitoring, adverse effects, and storage; node 2 and 4 support gastrointestinal effects; and node 4 supports caution for hepatic impairment, heart failure, and rhythm disorders. However, hypercalcaemia and hypercalciuria as contraindications, calciuria monitoring, stopping treatment immediately, and oral-solution instructions are not supported, and sentence 1 is only an introductory statement.",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What specific information must be provided to patients for proper treatment adherence?",
+      "expected_output": "Patients must be provided with the following specific information for proper treatment adherence: \n\n1. The name of the drug (International Nonproprietary Name - INN), its form, and strength.\n2. The dosage, clearly written out in full or in symbols.\n3. Instructions on how to take the drug and for how long.\n4. Possible adverse effects (e.g., drowsiness from anti-histamines).\n5. Precautions to be taken (e.g., avoiding alcohol with metronidazole).\n\nAdditionally, explanations should be given in a private setting, away from other patients, to ensure understanding.",
+      "actual_output": "To ensure proper treatment adherence, the following specific information must be provided to patients:\n\n1. **Name of the Drug**: The International Nonproprietary Name (INN) of the medication, its form, and strength.\n  \n2. **Dosage Information**: The dosage should be clearly written out in full or represented with symbols.\n\n3. **Administration Instructions**: Detailed guidance on how to take the drug, including the method of administration (e.g., orally, intravenously).\n\n4. **Duration of Treatment**: Information on how long the medication should be taken.\n\n5. **Possible Adverse Effects**: Information about potential side effects, such as drowsiness from anti-histamines.\n\n6. **Precautions**: Specific precautions that should be observed, such as avoiding alcohol while taking certain medications (e.g., metronidazole).\n\nThis is information from the documents, not medical advice. Please ask a doctor or pharmacist about your situation.",
+      "retrieved_chunks": 4,
+      "retrieval_context": [
+        "[guideline-339-en (1).pdf, page 644]\nto patients with all necessary explanations, slightly away from other patients.\nSo that patients correctly follow treatment, adequate explanations should be given:\n \nPersons dispensing drugs should be able to give patients the information they need.\nInterpreters are needed if several languages exist in the same region.\nDonations of recuperated medicines and medical samples\nIt is not recommended to solicit or accept supplies coming from collections of drugs recuperated from\nconsumers in industrialised countries, or free samples distributed by manufacturers.\n \nThey are very often specialised drugs unknown to prescribers and unsuitable for local pathologies. The\nmultiplication of different drugs supplied interfere with the implementation of standardised therapeutic\nregimens and makes any form of management impossible.\nthe name of the drug (INN), form and strength;\nthe dosage written out in full or in symbols.\nhow to take the drug,\nfor how long,",
+        "[guideline-339-en (1).pdf, page 7]\nSymbols\nPrescription under medical supervision\n \nThis box indicates potentially toxic drugs, administered under medical prescription only in many\ncountries.\n \nThis symbol is used to draw attention to drugs whose toxicity is signiﬁcant and whose use\nrequires speciﬁc precautions and/or closer patient monitoring.\n \nRecommendations for drug storage\n \n   Protect from light  \n \n   Protect from humidity  \n \nIf no temperature for storage is recommended, this indicates that no information was found in medical\nliterature.",
+        "[guideline-339-en (1).pdf, page 644]\nregimens and makes any form of management impossible.\nthe name of the drug (INN), form and strength;\nthe dosage written out in full or in symbols.\nhow to take the drug,\nfor how long,\npossible adverse effects (e.g. drowsiness caused by anti-histamines),\nprecautions to be taken (e.g. avoid alcohol with metronidazole).",
+        "[guideline-339-en (1).pdf, page 355]\nPage 356 / 663\nDosage and duration\n \nOne dose on admission (H0) then 12 hours after admission (H12) then 24 hours after admission (H24)\nthen, once daily.\nAdminister for at least 24 hours (minimum 3 doses), then, if the patient can tolerate the oral route,\nchange to a full 3-day course of an artemisinin-based combination (ACT). If not, continue parenteral\ntreatment with one dose daily until the patient can tolerate the oral route (do not exceed 7 days of\nparenteral treatment). The ﬁrst dose of ACT should be taken 8 to 12 hours after the last injection of\nartesunate.\n \nFor information (WHO weight-based dosage):\nChild under 6 kg: seek specialist advice.\nChild 6 kg to < 20 kg: 3 mg/kg/dose\nChild 20 kg and over and adult: 2.4 mg/kg/dose"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 0.75,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.75 because the response mostly addresses information patients need for treatment adherence, but it also includes an irrelevant source disclaimer and generic advice to consult a professional.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions, so the actual output is fully faithful to the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 0.833,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.83 because retrieval-context nodes ranked 1 and 3 are relevant: the first gives the drug name, form and strength, dosage, instructions, and duration, while the third lists “possible adverse effects” and “precautions to be taken.” It is not higher because the irrelevant node ranked 2, about “symbols for supervised prescriptions and drug storage,” appears before the relevant node ranked 3. The irrelevant node ranked 4, describing “a specific artesunate treatment regimen and dosing schedule,” is appropriately ranked lower.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because node 1 and node 3 in retrieval context support every sentence: node 1 supports the treatment-adherence explanation and private setting; nodes 1 and 3 support items 1–3; and node 3 supports items 4–5. Great match.",
+          "error": null
+        }
+      }
+    }
+  ]
+}

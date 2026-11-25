@@ -1,0 +1,135 @@
+{
+  "summary": {
+    "run_at": "2026-11-25T14:06:45",
+    "selection_mode": "hybrid",
+    "model": "openrouter:openai/gpt-4o-mini",
+    "judge_model": "openai/gpt-6-luna (OpenRouter)",
+    "total": 3,
+    "passed": 0,
+    "failed": 3,
+    "average_scores": {
+      "Answer Relevancy": 0.889,
+      "Faithfulness": 1.0,
+      "Contextual Precision": 0.278,
+      "Contextual Recall": 0.074
+    }
+  },
+  "results": [
+    {
+      "input": "Why is close medical supervision essential for administering melarsoprol given its high toxicity and adverse effects?",
+      "expected_output": "Close medical supervision is essential for administering melarsoprol due to its high toxicity and the risk of numerous adverse effects, including reactive encephalopathy, which can manifest as seizures, coma, and mental disorders. These complications typically occur between the 5th and 8th day of treatment, necessitating careful monitoring to manage any severe reactions promptly.",
+      "actual_output": "Close medical supervision is essential for administering melarsoprol due to its high toxicity and the potential for severe adverse effects. Melarsoprol is known to cause toxic reactions, including encephalopathy, which can lead to serious neurological complications. Furthermore, its narrow therapeutic window requires healthcare professionals to monitor the patient's response closely and manage any side effects that may arise during treatment. This supervision ensures that any adverse reactions can be promptly identified and treated, minimizing the risk of severe complications and improving patient safety.\n\nThis is information from the documents, not medical advice. Please ask a doctor or pharmacist about your situation.",
+      "retrieval_context": [],
+      "passed": false,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 0.667,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.67 because the response is partly relevant to melarsoprol’s risks, but generic disclaimers and advice to consult a professional do not explain why close medical supervision is essential.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions; the actual output is fully consistent with the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 0.0,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.00 because no retrieval-context nodes were provided, so there is no relevant evidence ranked ahead of irrelevant nodes.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 0.0,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.00 because sentence 1’s claims about melarsoprol’s toxicity and adverse effects, and sentence 2’s claims about when complications occur and the need for monitoring, are unsupported; no node(s) in retrieval context are provided for either sentence.",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What specific precautions should be taken when administering this medication, particularly regarding contraindications and monitoring requirements?",
+      "expected_output": "When administering this medication, specific precautions include:\n\n1. **Contraindications**: Do not administer to patients with hypercalcaemia, hypercalciuria, severe renal impairment, or those receiving cardiac glycosides. Avoid use in neonates receiving ceftriaxone with calcium gluconate due to the risk of precipitation.\n\n2. **Monitoring Requirements**: Monitor calcaemia and calciuria during treatment. For intravenous administration, monitor serum-calcium levels and ECG changes to detect hypercalcaemia, especially if treatment is prolonged or if plasma-calcium levels cannot be monitored.\n\n3. **Adverse Effects**: Be aware of potential side effects such as dizziness, gastrointestinal disturbances, and signs of hypercalcaemia (nausea, vomiting, increased thirst, polyuria). If severe symptoms occur, stop treatment immediately.\n\n4. **Special Populations**: Use caution in patients with hepatic impairment, heart failure, or cardiac rhythm disorders, and consider reducing dosage in these cases. \n\nAlways ensure to follow storage guidelines (below 25 °C) and check the specific instructions for use regarding the oral solution.",
+      "actual_output": "When administering the medication, consider the following specific precautions regarding contraindications and monitoring requirements:\n\n### Contraindications:\n- **Severe Renal Impairment:** Do not administer under any circumstances.\n- **Hepatic Impairment:** Administer with caution and reduce dosage as necessary.\n- **Heart Conditions:** Those with heart failure, atrioventricular block, and cardiac rhythm disorders should be monitored closely.\n- **Hypotension:** Use caution.\n- **Combination with Drugs Inducing Torsades de Pointes:** Avoid using with anti-arrhythmics, neuroleptics, tricyclic antidepressants, IV erythromycin, halofantrine, etc.\n- **Drowsiness and Behavioral Disturbances:** Exercise caution when patients are involved in activities requiring alertness, such as driving or operating machinery.\n\n### Monitoring Requirements:\n- **Infusion Control:** Monitor the infusion rate closely. It is advisable to use an infusion pump or syringe pump to prevent unintentional bolus administration.\n- **Electrolytes:** Monitor electrolytes regularly to determine the need for additional infusions and to prevent hyperkalaemia. Continuous electrocardiogram monitoring is required for higher doses or infusion rates.\n- **Blood Counts and Liver Enzymes:** Perform a full blood count (FBC) and liver enzyme tests at baseline and regularly during treatment to detect any potential adverse effects.\n\n### Risks to Monitor:\n- Possible adverse effects include malaise, hypotension (especially if administered too rapidly), gastrointestinal disturbances, and various disorders (renal, hepatic, haematologic).\n- Watch for signs of drowsiness, dizziness, headache, insomnia, and any severe reactions such as Stevens-Johnson syndrome, which require immediate medical attention.\n\nThese precautions will help ensure the safe administration of the medication. \n\nThis is information from the documents, not medical advice. Please ask a doctor or pharmacist about your situation.",
+      "retrieval_context": [
+        "[guideline-339-en (1).pdf, page 472]\ndays\nDo not administer to patients with severe renal impairment.\nReduce dosage in patients with renal impairment.\nMay cause:\naseptic abscess by IM route; venous thrombosis by IV route;\nmalaise, hypotension, particularly if administered too rapidly by IV route;\ngastrointestinal disturbances; renal, hepatic and haematologic disorders; pancreatitis,\narrhythmia, torsades de pointes, hypoglycaemia followed by hyperglycaemia.\nDo not combine with drugs inducing torsades de pointes: anti-arrhythmics, neuroleptics, tricyclic\nantidepressants, IV erythromycin, halofantrine, etc.",
+        "[guideline-339-en (1).pdf, page 482]\nhyperkalaemia).\nMay cause:\npain at infusion site, venous irritation and phlebitis (use a large peripheral vein to reduce these\nrisks);\nin the event of too rapid administration or overdose: hyperkalaemia, cardiac conduction and\nrhythm disorders, potentially fatal;\nin the event of extravasation: necrosis.\nMonitor closely:\ninfusion rate; use an infusion pump or syringe pump if possible to prevent unintentional bolus;\ninfusion site for redness and inﬂammation.\nMonitor electrolytes if possible to determine the need for further infusions and to avoid\nhyperkalaemia.\nHigher dose or infusion rate requires continuous electrocardiogram monitoring.\nPotassium chloride is also used to prevent hypokalaemia in patients unable to meet their daily\nrequirements by oral route : daily K  requirements are 2 to 3 mmol/kg daily in children and 1 to 2\nmmol/kg daily in adults.\n+\nA 7.5% potassium solution contains 1 mmol of K /ml; a 10% solution contains 1.34 mmol/ml ; a",
+        "[guideline-339-en (1).pdf, page 254]\nPage 255 / 663\nContra-indications, adverse effects, precautions\nRemarks\nStorage\nAdminister with caution to patients with hepatic impairment (reduce dosage), heart\nfailure, atrioventricular block, cardiac rhythm disorders, hypotension.\nMay cause:\ndrowsiness (caution when driving/operating machinery), dizziness, headache, behavioural\ndisturbances, insomnia;\ngastrointestinal disturbances (nausea, vomiting), vitamin D deﬁciency (consider\nsupplementation), osteoporosis, hepatotoxicity and gingival hypertrophy;\nrarely: haematologic disorders (thrombocytopenia, agranulocytosis, anaemia), hypersensitivity\nreactions (including severe cutaneous reactions such as Stevens-Johnson, Lyell and DRESS\nsyndromes). In these cases, stop treatment. Early symptoms such as fever, rash, mouth ulcers\nand bleeding require immediate medical attention. \nIf possible, perform at least FBC and liver enzymes, at baseline then regularly during treatment.\nAvoid or monitor the combination with:",
+        "[WHO-MVP-EMP-IAU-2019.06-eng (1).pdf, page 4]\nDefinitions of many of these terms and pharmaceutical quality requirements applicable to the different \ncategories are published in the current edition of The International Pharmacopoeia \nhttp://www.who.int/medicines/publications/pharmacopoeia."
+      ],
+      "passed": false,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the answer is fully relevant to the question, with no irrelevant statements identified.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions; the actual output is fully consistent with the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 0.833,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.83 because retrieval-context node 1 is relevant, citing “Do not administer to patients with severe renal impairment,” and node 3 adds relevant precautions such as “hepatic impairment” and “heart failure.” It is not higher because irrelevant node 2, about “potassium chloride” and hyperkalaemia, is ranked above relevant node 3; irrelevant node 4 is appropriately ranked last.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 0.222,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.22 because sentence 1 is only partly supported by node 1 in retrieval context, which mentions severe renal impairment but not the other contraindications; sentence 4 is supported by node 3, which advises caution for hepatic impairment, heart failure, and cardiac rhythm disorders and reduced dosage for hepatic impairment. Sentence 3 is partly supported by node 3 for dizziness and gastrointestinal disturbances, but not the hypercalcaemia symptoms or stopping treatment for any severe symptoms. Sentence 2 and the final storage and oral-solution guidance are unsupported; node 2 discusses electrolyte monitoring for hyperkalaemia, not calcium or ECG monitoring. The neonatal ceftriaxone warning is also unsupported by the nodes.",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What specific information must be provided to patients for proper treatment adherence?",
+      "expected_output": "Patients must be provided with the following specific information for proper treatment adherence: \n\n1. The name of the drug (International Nonproprietary Name - INN), its form, and strength.\n2. The dosage, clearly written out in full or in symbols.\n3. Instructions on how to take the drug and for how long.\n4. Possible adverse effects (e.g., drowsiness from anti-histamines).\n5. Precautions to be taken (e.g., avoiding alcohol with metronidazole).\n\nAdditionally, explanations should be given in a private setting, away from other patients, to ensure understanding.",
+      "actual_output": "For proper treatment adherence, patients should receive the following specific information:\n\n1. **Medication Purpose**: An explanation of what the medication is for and how it works.\n\n2. **Dosage Instructions**: Clear guidelines on how much medication to take, the frequency of doses, and the duration of the treatment.\n\n3. **Administration Method**: Information on how to take the medication (e.g., orally, injection, etc.), including any specific instructions related to food or timing.\n\n4. **Side Effects**: A list of potential side effects and what to do if they occur. This helps patients anticipate and manage adverse reactions.\n\n5. **Interactions**: Information about possible interactions with other medications, foods, or substances, which can affect the effectiveness or safety of the treatment.\n\n6. **Contraindications**: Details on any conditions or situations in which the medication should not be used.\n\n7. **Follow-Up**: Instructions on when and how to follow up with healthcare providers regarding treatment progress and any concerns.\n\n8. **Importance of Adherence**: Emphasizing the importance of taking the medication as prescribed and the potential consequences of non-adherence.\n\n9. **Access to Support**: Information on how to contact healthcare providers for questions or concerns, along with resources for additional support if needed.\n\nProviding this information in an understandable format, tailored to the patient's literacy level and language, is crucial for fostering adherence to treatment.",
+      "retrieval_context": [],
+      "passed": false,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the response directly addresses what information patients need for treatment adherence, with no irrelevant statements.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions, so the actual output is fully faithful to the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 0.0,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.00 because the retrieval contexts contain no nodes, so there are no relevant nodes ranked to support the question or explain the information patients need for treatment adherence.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 0.0,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.00 because none of the expected output’s sentences (the introductory statement, items 1–5, or the final sentence about explaining in private) can be attributed to any nodes in retrieval context; no retrieval context nodes are provided.",
+          "error": null
+        }
+      }
+    }
+  ]
+}

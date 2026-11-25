@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHAT_PAGE = Path(__file__).resolve().parent / "chat_gui.py"
+TEST_DATA_PAGE = Path(__file__).resolve().parent / "test_data_gui.py"
+SETTINGS_PAGE = Path(__file__).resolve().parent / "settings_gui.py"
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -118,8 +120,14 @@ if st.session_state.get("authenticated"):
         if st.button("Log out", icon=":material/logout:", width="stretch"):
             log_out()
         st.divider()
-    pages = [st.Page(CHAT_PAGE, title="Chatbot", icon=":material/smart_toy:", default=True)]
+    pages = [
+        st.Page(CHAT_PAGE, title="Chatbot", icon=":material/smart_toy:", default=True),
+        st.Page(TEST_DATA_PAGE, title="Test case generator", icon=":material/fact_check:"),
+        st.Page(SETTINGS_PAGE, title="Settings", icon=":material/settings:"),
+    ]
+    position = "sidebar"
 else:
     pages = [st.Page(login_page, title="Log in", icon=":material/login:", default=True)]
+    position = "hidden"
 
-st.navigation(pages, position="hidden").run()
+st.navigation(pages, position=position).run()

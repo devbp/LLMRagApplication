@@ -72,6 +72,13 @@ class SessionCostRequest(BaseModel):
     upload_files: int = Field(ge=0)
     upload_tokens: int = Field(ge=0)
     upload_usd: float = Field(ge=0)
+    # Test case generation and evaluation (test_data_gui.py); 0 for older clients.
+    testgen_runs: int = Field(default=0, ge=0)
+    testgen_tokens: int = Field(default=0, ge=0)
+    testgen_usd: float = Field(default=0.0, ge=0)
+    eval_runs: int = Field(default=0, ge=0)
+    eval_tokens: int = Field(default=0, ge=0)
+    eval_usd: float = Field(default=0.0, ge=0)
 
 
 class SessionCostResponse(BaseModel):
@@ -229,5 +236,5 @@ def save_session_cost(session_id: uuid.UUID, body: SessionCostRequest) -> Sessio
         logger.exception("Saving session cost failed")
         raise HTTPException(status_code=503, detail="Could not save the session cost right now.") from None
 
-    total = body.agent_usd + body.search_usd + body.upload_usd
+    total = body.agent_usd + body.search_usd + body.upload_usd + body.testgen_usd + body.eval_usd
     return SessionCostResponse(session_id=session_id, username=body.username, total_usd=total)
