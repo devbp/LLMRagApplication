@@ -33,7 +33,11 @@ Retrieval-augmented generation (RAG) over German law PDFs, with evaluation.
 # Embed the PDFs (only if not embedded yet) and ask sample questions
 uv run python src/llmragap/RAG_Pdf.py
 
-# Chat app
+# Chat app with login: start the auth API, then the app (login page -> chat page)
+uv run uvicorn llmragap.auth_api:app --port 8000
+uv run streamlit run src/llmragap/main_app.py
+
+# Chat app without login
 uv run streamlit run src/llmragap/chat_gui.py
 
 # Generate test cases from the stored chunks, then evaluate
