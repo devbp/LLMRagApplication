@@ -2,7 +2,7 @@
 
 FilesEmbeddings handles storage (load, split, embed, add/update/reset files in a
 collection) and retrieval (semantic, keyword/BM25 or hybrid search). It also records
-the embedding cost OpenRouter bills. The RAG agent itself is in RAG_Pdf.py.
+the embedding cost OpenRouter bills. The RAG agent itself is in Main_Rag_Agent.py.
 """
 
 import json

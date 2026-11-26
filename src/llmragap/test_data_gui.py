@@ -24,7 +24,7 @@ from llmragap.generate_test_data_chroma import (
 )
 from llmragap.app_resources import get_files_embeddings
 from llmragap.files_embeddings import DEFAULT_SELECTION_MODE, SEARCH_MODES
-from llmragap.RAG_Pdf import RagAgent
+from llmragap.Main_Rag_Agent import RagAgent
 from llmragap.session_cost import (
     add_run_cost,
     init_session_costs,

@@ -13,7 +13,7 @@ Retrieval-augmented generation (RAG) over German law PDFs, with evaluation.
 | File | Purpose |
 |---|---|
 | `src/llmragap/files_embeddings.py` | `FilesEmbeddings`: embedding PDFs into Chroma, search modes, embedding cost |
-| `src/llmragap/RAG_Pdf.py` | The RAG agent (search tools, system prompt) and chat cost callback |
+| `src/llmragap/Main_Rag_Agent.py` | The RAG agent (search tools, system prompt) and chat cost callback |
 | `src/llmragap/bm25_search.py` | BM25 keyword search |
 | `src/llmragap/chat_gui.py` | Streamlit chat: ask questions, upload PDFs, see costs |
 | `src/llmragap/generate_test_data.py` | Test cases generated from a PDF |
@@ -33,7 +33,7 @@ Retrieval-augmented generation (RAG) over German law PDFs, with evaluation.
 
 ```powershell
 # Embed the PDFs (only if not embedded yet) and ask sample questions
-uv run python src/llmragap/RAG_Pdf.py
+uv run python src/llmragap/Main_Rag_Agent.py
 
 # Chat app with login: start the auth API, then the app (login page -> chat page).
 # Once, in the Supabase SQL editor: run supabase/session_costs.sql (cost of each session per user).

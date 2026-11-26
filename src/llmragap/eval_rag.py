@@ -1,4 +1,4 @@
-"""Evaluate the law RAG agent from RAG_Pdf.py with DeepEval.
+"""Evaluate the law RAG agent from Main_Rag_Agent.py with DeepEval.
 
 Test cases are read from a JSON file containing a list of objects:
     [
@@ -44,7 +44,7 @@ from llmragap.files_embeddings import (
     SEARCH_MODES,
     FilesEmbeddings,
 )
-from llmragap.RAG_Pdf import ChatCostCallback, RagAgent
+from llmragap.Main_Rag_Agent import ChatCostCallback, RagAgent
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_INPUT_JSON = os.path.join(PROJECT_ROOT, "eval_data", "law_test_cases.json")
@@ -60,7 +60,7 @@ def dated_results_path(name: str) -> str:
 class RagEvaluator:
     """Runs JSON test cases through a RagAgent, scores them with DeepEval and saves the results."""
 
-    # format_results() in RAG_Pdf.py joins chunks with this separator.
+    # format_results() in Main_Rag_Agent.py joins chunks with this separator.
     CHUNK_SEPARATOR = "\n\n---\n\n"
     NO_RESULTS = "No matching passages found."
 

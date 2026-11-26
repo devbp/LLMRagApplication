@@ -1,4 +1,4 @@
-"""Simple Streamlit chatbot for the RagAgent in RAG_Pdf.py.
+"""Simple Streamlit chatbot for the RagAgent in Main_Rag_Agent.py.
 
 The agent answers law questions (VVG / BGB search), medicine questions (search of the
 uploaded medicine documents) and general questions. Each answer shows which tools the agent used.
@@ -13,7 +13,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 
 from llmragap.app_resources import get_files_embeddings
 from llmragap.files_embeddings import DEFAULT_SELECTION_MODE, SEARCH_MODES, FilesEmbeddings
-from llmragap.RAG_Pdf import ChatCostCallback, RagAgent
+from llmragap.Main_Rag_Agent import ChatCostCallback, RagAgent
 from llmragap.session_cost import (
     init_session_costs,
     money,
