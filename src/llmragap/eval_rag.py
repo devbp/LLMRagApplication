@@ -35,17 +35,16 @@ from deepeval.test_case import LLMTestCase
 from langchain_core.messages import ToolMessage
 
 from llmragap.llm_costs import TrackedOpenRouterModel
-from llmragap.RAG_Pdf import (
+from llmragap.files_embeddings import (
     CIVIL_CODE_COLLECTION,
     CIVIL_CODE_PDF,
     DEFAULT_SELECTION_MODE,
     INSURANCE_COLLECTION,
     INSURANCE_PDF,
     SEARCH_MODES,
-    ChatCostCallback,
     FilesEmbeddings,
-    RagAgent,
 )
+from llmragap.RAG_Pdf import ChatCostCallback, RagAgent
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_INPUT_JSON = os.path.join(PROJECT_ROOT, "eval_data", "law_test_cases.json")

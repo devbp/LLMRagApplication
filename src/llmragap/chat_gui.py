@@ -12,13 +12,8 @@ import streamlit as st
 from langchain_core.messages import AIMessage, ToolMessage
 
 from llmragap.app_resources import get_files_embeddings
-from llmragap.RAG_Pdf import (
-    DEFAULT_SELECTION_MODE,
-    SEARCH_MODES,
-    ChatCostCallback,
-    FilesEmbeddings,
-    RagAgent,
-)
+from llmragap.files_embeddings import DEFAULT_SELECTION_MODE, SEARCH_MODES, FilesEmbeddings
+from llmragap.RAG_Pdf import ChatCostCallback, RagAgent
 from llmragap.session_cost import (
     init_session_costs,
     money,

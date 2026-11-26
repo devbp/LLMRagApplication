@@ -7,7 +7,7 @@ page must use the same instance to see those changes.
 
 import streamlit as st
 
-from llmragap.RAG_Pdf import CIVIL_CODE_COLLECTION, INSURANCE_COLLECTION, MEDICINE_COLLECTION, FilesEmbeddings
+from llmragap.files_embeddings import CIVIL_CODE_COLLECTION, INSURANCE_COLLECTION, MEDICINE_COLLECTION, FilesEmbeddings
 
 # Label shown in the UI -> Chroma collection name.
 COLLECTIONS = {

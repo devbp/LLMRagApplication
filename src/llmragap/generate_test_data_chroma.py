@@ -21,7 +21,7 @@ from deepeval.synthesizer import Synthesizer
 from dotenv import load_dotenv
 
 from llmragap.llm_costs import TrackedOpenRouterModel
-from llmragap.RAG_Pdf import CIVIL_CODE_COLLECTION, INSURANCE_COLLECTION, MEDICINE_COLLECTION, FilesEmbeddings
+from llmragap.files_embeddings import CIVIL_CODE_COLLECTION, INSURANCE_COLLECTION, MEDICINE_COLLECTION, FilesEmbeddings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")

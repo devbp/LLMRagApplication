@@ -23,7 +23,8 @@ from llmragap.generate_test_data_chroma import (
     save_test_cases,
 )
 from llmragap.app_resources import get_files_embeddings
-from llmragap.RAG_Pdf import DEFAULT_SELECTION_MODE, SEARCH_MODES, RagAgent
+from llmragap.files_embeddings import DEFAULT_SELECTION_MODE, SEARCH_MODES
+from llmragap.RAG_Pdf import RagAgent
 from llmragap.session_cost import (
     add_run_cost,
     init_session_costs,
