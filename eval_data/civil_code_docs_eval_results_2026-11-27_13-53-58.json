@@ -1,0 +1,442 @@
+{
+  "cost": {
+    "agent_usd": 0.00530835,
+    "search_usd": 1.82e-05,
+    "judge_usd": 0.0197364,
+    "total_usd": 0.02506295,
+    "tokens": 122700,
+    "model_calls": 131
+  },
+  "summary": {
+    "run_at": "2026-11-27T13:55:25",
+    "selection_mode": "hybrid",
+    "model": "openrouter:openai/gpt-4o-mini",
+    "judge_model": "openai/gpt-6-luna (OpenRouter)",
+    "total": 10,
+    "passed": 6,
+    "failed": 4,
+    "no_retrieval": 0,
+    "average_scores": {
+      "Answer Relevancy": 0.961,
+      "Faithfulness": 0.967,
+      "Contextual Precision": 1.0,
+      "Contextual Recall": 0.877
+    }
+  },
+  "results": [
+    {
+      "input": "What rights do detainees awaiting deportation have, particularly regarding contact with legal representatives and family members?",
+      "expected_output": "Detainees awaiting deportation have the right to contact legal representatives, family members, competent consular authorities, and relevant aid and support organizations. They are also to be informed of their rights and obligations while in custody.",
+      "actual_output": "Detainees awaiting deportation have specific rights regarding contact with legal representatives and family members. According to the relevant regulations:\n\n1. Detainees are permitted to contact legal representatives and family members, as well as the competent consular authorities and relevant aid and support organisations (englisch_aufenthg.pdf, p. 103).\n2. Minors in custody awaiting deportation have their needs taken into account according to regulations that focus on vulnerable persons, ensuring that their specific circumstances are considered (englisch_aufenthg.pdf, p. 104).\n3. Upon application, staff of relevant aid and assistance organisations are typically allowed to visit detainees awaiting deportation, providing an additional layer of support (englisch_aufenthg.pdf, p. 104).\n4. Detainees must be informed of their rights and obligations, along with the rules applicable in the facility where they are detained (englisch_aufenthg.pdf, p. 104).\n\nThese provisions are designed to ensure that detainees are not isolated and have access to necessary legal and emotional support during their detention.\n\nSources:\n- englisch_aufenthg.pdf, p. 103\n- englisch_aufenthg.pdf, p. 104",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_aufenthg.pdf, p. 103)\n(2) Detainees awaiting deportation are permitted to contact legal representatives, family \nmembers, the competent consular authorities and the relevant aid and support \norganisations. \n(3) In the case of minors in custody awaiting deportation, the needs of persons their age are \nto be taken into account in accordance with Article 17 of Directive 2008/115/EC of the \nEuropean Parliament and of the Council of 16 December 2008 on common standards and",
+        "Source: (englisch_aufenthg.pdf, p. 104)\nService provided by the Federal Ministry of Justice and Consumer Protection \nand the Federal Office of Justice ‒ www.gesetze-im-internet.de \nPage 104 of 168 \nprocedures in member states for returning illegally staying third-country nationals (OJ L 348, \n24.12.2008, p. 98). Particular attention is to be paid to the situation of vulnerable persons. \n(4) Upon application, staff of relevant aid and assistance organisations are, as a general \nrule, to be permitted to visit detainees awaiting deportation. \n(5) Detainees awaiting deportation are to be informed of their rights and obligations and the \nrules applied in the facility. \nSection 62b \nCustody to secure departure \n(1) Notwithstanding the conditions applicable to custody to secure deportation pursuant to \nsection 62 (3), in particular the existence of a risk of absconding, foreigners may be placed in \ncustody for no more than 28 days by judicial order for the purpose of ensuring that the \ndeportation can be carried out if"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 0.857,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.86 because the response was mostly relevant to detainees’ contact rights, but it also included an irrelevant point about protections for minors in custody.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions; the actual output is fully consistent with the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because both retrieval-context nodes are relevant and highly ranked: the first directly addresses contact with “legal representatives” and “family members,” while the second adds that detainees are “to be informed of their rights and obligations” and may receive visits from aid organizations. Great ranking with no irrelevant nodes to lower the score.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because sentence 1 is fully supported by the 1st node in retrieval context, which lists the people and organizations detainees may contact, and sentence 2 is supported by the 2nd node in retrieval context, which says they are to be informed of their rights and obligations. Great match!",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What are the communication rights of detainees regarding legal representatives and family members during deportation?",
+      "expected_output": "Detainees awaiting deportation have the right to contact legal representatives, family members, competent consular authorities, and relevant aid and support organizations. They are to be informed of their rights and obligations regarding these communications.",
+      "actual_output": "Detainees awaiting deportation have specific communication rights that allow them to contact legal representatives, family members, competent consular authorities, and relevant aid and support organizations. This is intended to ensure that detainees can access legal support and maintain connections with their families during the process. \n\nMoreover, in the case of minors in custody, their specific needs must be considered, acknowledging that they may require different support compared to adult detainees as outlined in the relevant European directive.\n\nSources:\n- englisch_aufenthg.pdf, p. 103\n\nThis is information from the documents, not medical advice. Please ask a doctor or pharmacist about your situation.",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_aufenthg.pdf, p. 103)\n(2) Detainees awaiting deportation are permitted to contact legal representatives, family \nmembers, the competent consular authorities and the relevant aid and support \norganisations. \n(3) In the case of minors in custody awaiting deportation, the needs of persons their age are \nto be taken into account in accordance with Article 17 of Directive 2008/115/EC of the \nEuropean Parliament and of the Council of 16 December 2008 on common standards and",
+        "Source: (englisch_aufenthg.pdf, p. 103)\nSection 62a (1) applies accordingly. \nSection 62a \nEnforcement of custody awaiting deportation \n(1) Custody awaiting deportation is enforced in specialised detention facilities. If no \nspecialised detention facilities are available in the federal territory, or if the foreigner \nconstitutes a significant threat to the life and limb of others or to significant legally protected \ninternal security interests, custody awaiting deportation may be enforced in other penal \ninstitutions; in this case, detainees awaiting deportation are to be accommodated separately \nfrom prisoners serving criminal sentences. If several members of a family are detained, they \nare to be accommodated separately from other detainees awaiting deportation. They are to \nbe guaranteed an appropriate degree of privacy. \n(2) Detainees awaiting deportation are permitted to contact legal representatives, family \nmembers, the competent consular authorities and the relevant aid and support \norganisations."
+      ],
+      "passed": false,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 0.75,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 0.75 because the response largely addresses detainees’ communication rights during deportation, but an unrelated medical disclaimer and advice to consult a doctor or pharmacist reduce its relevance.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions, so the actual output is fully consistent with the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the first and second nodes in the retrieval contexts directly support the answer, citing permission to contact “legal representatives” and “family members.” Both are relevant and well ranked.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 0.5,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.50 because sentence 1 is supported by nodes 1 and 2 in retrieval context, which state that detainees may contact the listed representatives and organizations, while sentence 2 is not supported by either node.",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What are the financial implications for a borrower who repays their consumer credit loan early?",
+      "expected_output": "When a borrower repays their consumer credit loan early, the overall costs of the credit are reduced by the interest and any term-linked charges corresponding to the remaining contract period. However, the lender may require compensation for early repayment if the borrower owes interest at a pegged borrowing rate. This compensation is limited and may not apply if the repayment is made using funds from an insurance policy or if the contract information is inadequate.",
+      "actual_output": "When a borrower repays their consumer credit loan early, there are specific financial implications that they should be aware of, particularly under German law. \n\n1. **Compensation Limits**: For general-purpose consumer credit agreements, the borrower may be required to compensate the lender for early repayment, but this compensation is limited. The lender may charge:\n   - Up to 1% of the amount repaid early, or\n   - If the period between the early repayment and the agreed repayment date is not more than one year, up to 0.5% of the amount repaid early.\n   - Alternatively, the compensation may equal the amount of interest that the borrower would have paid during the period between the early repayment and the originally agreed repayment date (englisch_bgb.pdf, p. 123).\n\n2. **Exclusions from Compensation Claims**: The obligation for the borrower to pay compensation may not apply if:\n   - The early repayment is made using funds from an insurance policy that was stipulated in the credit agreement,\n   - There are inadequacies in the contract terms regarding the loan term, the borrower's right of termination, or the calculation of the compensation for early repayment (englisch_bgb.pdf, p. 123).\n\nThese points suggest that while there might be some costs associated with early repayment, they are regulated and limited, allowing borrowers to potentially save on interest payments over time.\n\nSources:\n- englisch_bgb.pdf, p. 123",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 123)\nthe loan is inadequate. \n(3) In the case of general-purpose consumer credit agreements, the compensation for early \nrepayment of a loan may not exceed the following amounts in each case:  \n1. 1 per cent of the amount repaid early, or, if the period between the early and the \nagreed repayment is not more than one year, 0.5 per cent of the amount repaid early, \n2. the amount of the interest that the borrower would have paid in the period \nbetween early and agreed repayment.",
+        "Source: (englisch_bgb.pdf, p. 123)\nrepayment of the loan to cover the damage directly related to early repayment if the borrower \nat the time of repayment owes interest at a pegged borrowing rate. In the case of general-\npurpose consumer credit agreements, sentence 1 applies only if the pegged borrowing rate \nwas agreed at conclusion of the contract. \n(2) The claim to compensation for early repayment of the loan is excluded if \n1. the repayment is effected from funds from an insurance policy concluded on the \nbasis of a corresponding obligation in the credit agreement in order to ensure repayment, \nor \n2. the information contained in the contract on the term of the contract, the right of \ntermination of the borrower or the calculation of the compensation for early repayment of \nthe loan is inadequate. \n(3) In the case of general-purpose consumer credit agreements, the compensation for early \nrepayment of a loan may not exceed the following amounts in each case:"
+      ],
+      "passed": false,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no identified irrelevant statements, so the response is fully relevant to the question.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions, so the actual output is fully faithful to the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because both retrieval-context nodes are relevant and well ranked: the first explains the cap on early-repayment compensation, and the second clarifies when it may be charged and when it is excluded. There are no irrelevant nodes ranked above relevant ones.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 0.667,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.67 because sentence 1’s claim about reduced costs is not supported by the node(s) in retrieval context, while sentence 2’s pegged-rate compensation claim is supported by node 2 and its limits by node 1; sentence 3’s exclusions are supported by node 2.",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "How can borrowers terminate a consumer credit agreement without notice, and what are the conditions?",
+      "expected_output": "Borrowers can terminate a general-purpose consumer credit agreement without notice as a whole or in part. However, any agreement stipulating a notice period longer than one month is considered ineffective. Additionally, borrowers may discharge their obligations early at any time, but for agreements related to immovable property with a pegged borrowing rate, early discharge is only permitted if the borrower has a legitimate interest in doing so.",
+      "actual_output": "Borrowers can terminate a consumer credit agreement without notice under specific conditions outlined in the Civil Code (BGB). Specifically:\n\n1. **Termination of General-Purpose Consumer Credit Agreements**: A borrower may terminate a general-purpose consumer credit agreement, which does not have a specified repayment schedule, either in full or in part, without observing any notice period. This means that if there is no defined repayment timeframe, the borrower has the right to cancel the agreement immediately (BGB, § 500, p. 123).\n\n2. **Conditions for Early Discharge**: The borrower can also discharge their obligations under a consumer credit agreement early, either partially or fully, at any time. However, if the consumer credit agreement is related to immovable property (like a mortgage) and has a pegged borrowing rate, the borrower can only do so with a legitimate interest during the pegged rate period (BGB, § 500, p. 123).\n\n3. **Ineffective Notice Periods**: Any agreement stipulating a notice period longer than one month for such terminations would be deemed ineffective (BGB, § 500, p. 123).\n\nIt's important for borrowers to check the specific terms outlined in their agreements and the relevant laws to understand their rights and any potential implications of termination.\n\nSources:\n- englisch_bgb.pdf, p. 123",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 123)\n(1) The borrower may terminate a general-purpose consumer credit agreement, regarding \nwhich no time for repayment has been determined, as a whole or in part without observing a \nperiod of notice. An agreement on a notice period of more than one month is ineffective. \n(2) The borrower may discharge their obligations under a consumer credit agreement early, \nand may do so at any time and as a whole or in part. In derogation from sentence 1, the \nborrower of a consumer credit agreement relating to immovable property, for which a pegged \nborrowing rate was agreed, may discharge their obligations early, whether as a whole or in \npart, in the corse of the period in which the borrowing rate is pegged only if there is a \nlegitimate interest on the part of the borrower to do so. \nSection 501 \nCost reduction in the case of early repayment and in the case of termination \n(1) Insofar as the borrower discharges their obligations under a consumer credit agreement",
+        "Source: (englisch_bgb.pdf, p. 123)\nService provided by the Federal Ministry of Justice and Consumer Protection \nand the Federal Office of Justice ‒ www.gesetze-im-internet.de \nPage 123 of 491 \n(3) The lender may not terminate a consumer credit agreement, otherwise end it, or demand \nthat it be amended solely by reason of the information provided by the borrower prior to \nconclusion of the contract having been incomplete, or because the assessment of the \nborrower’s creditworthiness was not performed properly. Sentence 1 does not apply should \nthe defect of the creditworthiness assessment have been caused by the borrower having \nknowingly withheld from the lender information relevant to the creditworthiness assessment \nor having falsified such information. \nSection 500 \nTermination right of the borrower; early repayment \n(1) The borrower may terminate a general-purpose consumer credit agreement, regarding \nwhich no time for repayment has been determined, as a whole or in part without observing a"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the response is fully relevant to the question, with no irrelevant statements identified.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions; the actual output is fully faithful to the retrieval context. Great job!",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because both the first and second nodes in the retrieval contexts are relevant: the first states termination may occur “without observing a period of notice” and gives the conditions, while the second repeats the no-notice rule. Excellent ranking, with no irrelevant nodes to rank lower.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because node 1 in the retrieval context supports sentence 1 on termination, sentence 2 on the ineffective notice period, and sentence 3 on early discharge and the legitimate-interest condition. Great coverage!",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What is the effect on a testamentary disposition if the marriage or engagement is dissolved before the testator's death?",
+      "expected_output": "If the marriage or engagement is dissolved before the testator's death, any testamentary disposition made for the spouse or engaged person is ineffective. This means that the provisions made for them in the will will not be honored. However, if it can be assumed that the testator would have made the same provision regardless of the dissolution, the disposition may still be valid.",
+      "actual_output": "According to the German Civil Code (BGB), a testamentary disposition made in favor of a spouse becomes ineffective if the marriage is dissolved before the testator's death. This provision also applies in cases where the prerequisites for divorce were met at the time of the testator's death, and either a petition for divorce was filed or consent to the divorce was given by the testator. Furthermore, if the testator was entitled to petition for the annulment of the marriage and had filed that petition at the time of their death, the same rule applies.\n\nSimilarly, a testamentary disposition made in favor of a fiancée becomes ineffective if the engagement is dissolved before the testator's death. However, if it can be reasonably assumed that the testator would have made the disposition regardless of the dissolution of marriage or engagement, the disposition remains valid.\n\nSources:\n- englisch_bgb.pdf, p. 448",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 448)\nengagement \n(1) A testamentary disposition in which the testator has made provision for their spouse is \nineffective if the marriage was dissolved before the testator’s death. It is equivalent to \ndissolution of marriage if at the time of the death of the testator the prerequisites for divorce \nwere satisfied and the testator had petitioned for divorce or consented to it. The same \napplies if the deceased at the time of their death was entitled to petition for the annulment of \nthe marriage and had filed the petition. \n(2) A testamentary disposition in which the testator has made provision for the person to \nwhom they are engaged is ineffective if the engagement was dissolved before the testator’s \ndeath. \n(3) The disposition is not ineffective if it is to be assumed that the testator would have made \nit even in such a case. \nSection 2078 \nAvoidance for mistake or duress \n(1) A testamentary disposition may be avoided to the extent that the testator was mistaken",
+        "Source: (englisch_bgb.pdf, p. 448)\nprovided for refrains from doing or continues to do something for an indefinite period, then, if \nthe ceasing or continuing is purely at the discretion of the person provided for, in case of \ndoubt it is to be assumed that the gift is to be dependent on the condition subsequent that \nthe person provided for undertakes the action or refrains from it. \nSection 2076 \nCondition for the benefit of a third party \nIf the condition subject to which a testamentary gift is made is intended to benefit a third \nparty, then in case of doubt it is held to have been satisfied if the third party refuses the \ncooperation necessary to satisfy it. \nSection 2077 \nIneffectiveness of testamentary dispositions on dissolution of marriage or \nengagement \n(1) A testamentary disposition in which the testator has made provision for their spouse is \nineffective if the marriage was dissolved before the testator’s death. It is equivalent to"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because no irrelevant statements were identified, so the response is fully relevant and has no basis for a higher score.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions; the actual output is fully consistent with the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because both retrieval-context nodes are relevant and ranked appropriately: the first directly explains that a disposition for a spouse or engaged person is ineffective after dissolution, with an exception if the testator would have made it anyway, and the second identifies the applicable rule under Section 2077. There are no irrelevant nodes lowering the score.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because sentence 1 is supported by nodes 1 and 2 in retrieval context, sentence 2 by node 2, and sentence 3 by nodes 1 and 2. All claims are grounded in the retrieval context—great match!",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "How does the dissolution of engagement affect testamentary dispositions made by the testator?",
+      "expected_output": "The dissolution of engagement renders any testamentary dispositions made by the testator in favor of the engaged person ineffective if the engagement was dissolved before the testator's death. However, if it can be assumed that the testator would have made the disposition regardless of the dissolution, it may still be considered valid.",
+      "actual_output": "The dissolution of an engagement has specific effects on testamentary dispositions made by the testator. According to the Civil Code (BGB), a testamentary disposition in which the testator has made provision for the person to whom they are engaged is rendered ineffective if the engagement was dissolved before the testator's death (englisch_bgb.pdf, p. 448). \n\nHowever, if it can be assumed that the testator would have made the disposition regardless of the dissolution, it remains valid. Essentially, the general principle here is that engagements do not provide rights in terms of inheritance after dissolution, similar to the rules that apply to dissolved marriages. \n\nThe relevant legal provisions highlight that any engagements or marital provisions made by the testator will not hold if the engagement or marriage has been legally dissolved prior to the testator's death (englisch_bgb.pdf, p. 448).\n\nSources:\n- englisch_bgb.pdf, p. 448",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 448)\nengagement \n(1) A testamentary disposition in which the testator has made provision for their spouse is \nineffective if the marriage was dissolved before the testator’s death. It is equivalent to \ndissolution of marriage if at the time of the death of the testator the prerequisites for divorce \nwere satisfied and the testator had petitioned for divorce or consented to it. The same \napplies if the deceased at the time of their death was entitled to petition for the annulment of \nthe marriage and had filed the petition. \n(2) A testamentary disposition in which the testator has made provision for the person to \nwhom they are engaged is ineffective if the engagement was dissolved before the testator’s \ndeath. \n(3) The disposition is not ineffective if it is to be assumed that the testator would have made \nit even in such a case. \nSection 2078 \nAvoidance for mistake or duress \n(1) A testamentary disposition may be avoided to the extent that the testator was mistaken",
+        "Source: (englisch_bgb.pdf, p. 448)\nprovided for refrains from doing or continues to do something for an indefinite period, then, if \nthe ceasing or continuing is purely at the discretion of the person provided for, in case of \ndoubt it is to be assumed that the gift is to be dependent on the condition subsequent that \nthe person provided for undertakes the action or refrains from it. \nSection 2076 \nCondition for the benefit of a third party \nIf the condition subject to which a testamentary gift is made is intended to benefit a third \nparty, then in case of doubt it is held to have been satisfied if the third party refuses the \ncooperation necessary to satisfy it. \nSection 2077 \nIneffectiveness of testamentary dispositions on dissolution of marriage or \nengagement \n(1) A testamentary disposition in which the testator has made provision for their spouse is \nineffective if the marriage was dissolved before the testator’s death. It is equivalent to"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because no irrelevant statements were identified, so the response is fully relevant to the question about how dissolving an engagement affects testamentary dispositions.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the contradiction list is empty, so no inconsistencies were identified. Great job!",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because both retrieval-context nodes are relevant and ranked appropriately: the first node directly explains that a disposition for a fiancé becomes ineffective if the engagement ends before the testator’s death, unless the testator would have made it anyway, and the second identifies Section 2077 as covering dissolution of marriage or engagement. There are no irrelevant nodes lowering the score.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because both sentences are fully supported: sentence 1 by nodes 1 and 2 in retrieval context, and sentence 2 by node 1. Great coverage!",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What provisions regarding membership, contributions, board composition, and meetings should articles of association include?",
+      "expected_output": "The articles of association should include provisions on the following:\n\n1. **Membership**: Details on how individuals can become members and the process for leaving the association.\n2. **Contributions**: Information on whether members are required to make contributions and the types of contributions expected.\n3. **Board Composition**: Specifications regarding the structure and composition of the board.\n4. **Meetings**: Prerequisites for convening general meetings, including the required form for notice and the notarial recording of resolutions.",
+      "actual_output": "The articles of association for an association should include several key provisions regarding membership, contributions, board composition, and meetings. Here are the relevant points based on the provisions from the German Civil Code (BGB):\n\n1. **Membership**:\n   - Membership is non-transferable and non-inheritable, meaning it cannot be passed on to others nor delegated (BGB Section 38).\n   - The articles can specify conditions under which members may leave the association. Members have the right to leave, but the articles may impose conditions such as leaving only at the end of a fiscal year or requiring a notice period, which cannot exceed two years (BGB Section 39).\n\n2. **Contributions**:\n   - While the specific provisions regarding monetary contributions (dues or fees) were not explicitly detailed in the consulted sections, it is typical for articles of association to include the expectations, amounts, and frequency of these contributions.\n\n3. **Board Composition**:\n   - The composition of the board should be outlined in the articles, including the number of board members, their rights, and responsibilities. The articles can also stipulate any deviations from general legal requirements regarding the board (BGB Section 40).\n\n4. **Meetings**:\n   - The articles must specify how and when general meetings are to be convened. It must outline cases in which a meeting is necessary and the procedures for notifying members (BGB Section 36).\n   - They should also include provisions for minority members to request a meeting, specifying the required proportion of members needed to call for one (BGB Section 37).\n   - The articles should define the quorum necessary for meetings and the voting procedures required for resolutions, which may require a majority of votes cast unless the articles specify otherwise (BGB Section 41).\n\nThese key elements ensure that the governance of the association is clear and properly delineated, adheres to legal requirements, and meets the needs of the members.\n\n**Sources**:\n- - englisch_bgb.pdf, p. 6",
+      "retrieved_chunks": 4,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 6)\nin which the association has its seat. The authorisation must be referred to in the notice \nconvening the meeting. \nSection 38 \nMembership \nMembership is not transferable and not inheritable. It is not possible to entrust the exercise \nof membership rights to another person. \nSection 39 \nLeaving the association \n(1) The members have the right to leave the association. \n(2) The articles of association may specify that leaving is admissible only at the end of a \nfiscal year or only after a notice period; the maximum notice period is two years. \nSection 40 \nFlexible provisions \nThe provisions of section 26 (2) sentence 1, section 27 (1) and (3), sections 28 and 31a (1) \nsentence 2 as well as sections 32, 33 and 38 do not apply where the articles of association \nprovide otherwise. It is not possible to deviate from section 34 by way of the articles of \nassociation, even for the passing of resolutions by the board. \nSection 41 \nDissolution of the association",
+        "Source: (englisch_bgb.pdf, p. 6)\nmeeting without the member’s consent. \nSection 36 \nConvening the general meeting \n(1) The general meeting is to be convened in the cases laid down in the articles of \nassociation and when the interests of the association require it. \nSection 37 \nConvening a meeting at the request of a minority \n(1) The general meeting is to be convened if the proportion of the membership laid down in \nthe articles of association or, in the absence of a provision, one-tenth of the members call in \nwriting for a meeting to be convened, stating the purpose and the reasons. \n(2) If the request is not granted, the local court may authorise the members who made the \nrequest to convene the meeting; it may make orders on the chairing of the meeting. The \ncourt with jurisdiction is the local court maintaining the register of associations for the district \nin which the association has its seat. The authorisation must be referred to in the notice \nconvening the meeting. \nSection 38 \nMembership",
+        "Source: (englisch_bgb.pdf, p. 6)\nin which the association has its seat. The authorisation must be referred to in the notice \nconvening the meeting. \nSection 38 \nMembership \nMembership is not transferable and not inheritable. It is not possible to entrust the exercise \nof membership rights to another person. \nSection 39 \nLeaving the association \n(1) The members have the right to leave the association. \n(2) The articles of association may specify that leaving is admissible only at the end of a \nfiscal year or only after a notice period; the maximum notice period is two years. \nSection 40 \nFlexible provisions \nThe provisions of section 26 (2) sentence 1, section 27 (1) and (3), sections 28 and 31a (1) \nsentence 2 as well as sections 32, 33 and 38 do not apply where the articles of association \nprovide otherwise. It is not possible to deviate from section 34 by way of the articles of \nassociation, even for the passing of resolutions by the board. \nSection 41 \nDissolution of the association",
+        "Source: (englisch_bgb.pdf, p. 6)\nprovide otherwise. It is not possible to deviate from section 34 by way of the articles of \nassociation, even for the passing of resolutions by the board. \nSection 41 \nDissolution of the association \nAn association may be dissolved by resolution of the general meeting. The resolution \nrequires a majority of three-quarters of the votes cast, unless otherwise provided in the \narticles of association."
+      ],
+      "passed": false,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no identified irrelevant statements, so the response is fully relevant to the input.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions; the actual output is fully consistent with the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00: the relevant retrieval-context nodes rank first through third, and the irrelevant fourth node is correctly last, covering “dissolution and flexible provisions for board resolutions” instead of the requested topics. Great ranking.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 0.6,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.60 because sentence 1 is supported by nodes in retrieval context 1 and 3, which address membership and leaving the association. Sentence 4 is partially supported by node 2, which gives conditions for convening meetings, but not the notice form or notarial recording. Sentences 2 and 3, on contributions and board composition, are not supported by the retrieval context.",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What additional documents must accompany the registration application alongside the articles of association?",
+      "expected_output": "Alongside the articles of association, the registration application must include documents on the appointment of the board.",
+      "actual_output": "When applying for the registration of an association, alongside the articles of association, the following documents must be attached to the application:\n\n1. **Copies of the articles of association** themselves.\n2. **Documents on the appointment of the board**.\n\nThese documents are essential for the registration process as outlined in the regulations (BGB, Section 59). \n\nSources:\n- - englisch_bgb.pdf, p. 10",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 10)\nthe form required for convening it and on the notarial recording of the resolutions. \nSection 59 \nApplication for registration \n(1) The board is to apply for the association to be registered. \n(2) Copies of the articles of association and of the documents on the appointment of the \nboard are to be attached to the application. \n(3) As a rule, the articles of association are to be signed by at least seven members and are \nto state the date of their establishment. \nSection 60 \nRejection of the application \nIf the requirements of sections 56 to 59 have not been met, then the application is to be \nrejected by the local court, stating the reasons. \nSections 61 - 63 \n(repealed) \nSection 64 \nContents of the entry in the register of associations \nOn entry in the register, the name and seat of the association, the date of the execution of \nthe Articles, the members of the board and their powers of agency are to be stated. \nSection 65 \nAddition to name",
+        "Source: (englisch_bgb.pdf, p. 10)\nService provided by the Federal Ministry of Justice and Consumer Protection \nand the Federal Office of Justice ‒ www.gesetze-im-internet.de \nPage 10 of 491 \n(2) As a rule, the name is to differ appreciably from the names of the registered associations \nin existence in the same place or in the same municipality. \nSection 58 \nRecommended contents of the articles of association \nAs a rule, the articles of association are to contain provisions: \n1. on becoming a member of the association and leaving it, \n2. on whether the members are to make contributions, and if so, of what type \nthese contributions are to be, \n3. on the composition of the board, \n4. on the prerequisites based on which the general meeting is to be convened, on \nthe form required for convening it and on the notarial recording of the resolutions. \nSection 59 \nApplication for registration \n(1) The board is to apply for the association to be registered."
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no irrelevant statements, so the response fully addresses the question.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions; the actual output is fully faithful to the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the first node in the retrieval contexts directly identifies the additional document: “the documents on the appointment of the board.” The irrelevant second node is ranked lower; it discusses “the composition of the board” but does not identify any documents to accompany the application. All relevant information is ranked ahead of irrelevant information.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because sentence 1 is fully supported by node 1 in retrieval context, which says the application must include copies of the articles of association and documents on the appointment of the board. Great match!",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "What are the annulment conditions for a new marriage if the declared-dead spouse is alive, and how does knowledge of this affect the previous marriage's status?",
+      "expected_output": "If a spouse enters into a new marriage after the other spouse has been declared dead, and the declared-dead spouse is still alive, the new marriage may be annulled if both spouses of the new marriage knew at the time of the marriage that the declared-dead spouse was alive. If they did not have this knowledge, the previous marriage is automatically dissolved upon the conclusion of the new marriage, and this dissolution remains even if the declaration of death is later set aside. The former spouse can petition for annulment within one year of learning that the declared-dead spouse is alive.",
+      "actual_output": "When a spouse has been declared dead and the other spouse enters into a new marriage, the conditions for annulment are as follows:\n\n1. **Annulment Conditions**: If the declared-dead spouse is actually alive, the new marriage may be annulled for breach of section 1306 only if both spouses in the new marriage were aware at the time of the marriage that the declared-dead spouse was still alive at the time of their declaration of death (Source: (englisch_bgb.pdf, p. 322)).\n\n2. **Dissolution of the Previous Marriage**: When the new marriage is concluded, the previous marriage is generally considered dissolved, unless both parties to the new marriage knew that the declared-dead spouse was still alive at the time of the declaration of death. This dissolution remains intact even if the declaration of death is later set aside (Source: (englisch_bgb.pdf, p. 322)).\n\n3. **Time Limit for Annulment**: The former spouse of the declared-dead individual may petition for annulment of the new marriage, unless they had knowledge that the spouse was alive at the time of the new marriage's conclusion. This petition can only be made within one year from the date they became aware of the declared-dead spouse's existence (Source: (englisch_bgb.pdf, p. 323)).\n\nIn summary, both knowledge of the declared-dead spouse's status and the mutual awareness at the time of entering into the new marriage are crucial factors in determining whether the new marriage can be annulled and the status of the previous marriage. \n\nSources:\n- - englisch_bgb.pdf, p. 322\n- - englisch_bgb.pdf, p. 323",
+      "retrieved_chunks": 4,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 322)\n(1) Where a spouse, after the other spouse has been declared dead, enters into a new \nmarriage, then, if the spouse declared dead is still alive, the new marriage may be annulled \nfor breach of section 1306 only if both spouses knew at conclusion of the marriage that the \nspouse declared dead was still alive at the date of the declaration of death. \n(2) On conclusion of the new marriage, the earlier marriage is dissolved, unless both \nspouses of the new marriage knew at conclusion of the marriage that the spouse declared \ndead was still alive at the date of the declaration of death. It remains dissolved even if the \ndeclaration of death is set aside.",
+        "Source: (englisch_bgb.pdf, p. 323)\nService provided by the Federal Ministry of Justice and Consumer Protection \nand the Federal Office of Justice ‒ www.gesetze-im-internet.de \nPage 323 of 491 \nSection 1320 \nAnnulment of the new marriage \n(1) If the spouse declared dead is still alive, then notwithstanding section 1319, their former \nspouse may petition for the annulment of the new marriage, unless they knew at conclusion \nof the marriage that the spouse declared dead was still alive at the date of the declaration of \ndeath. The annulment may be petitioned for only within one year. The period begins on the \ndate on which the spouse of the former marriage obtained knowledge that the spouse \ndeclared dead is still alive. Section 1317 (1) sentence 3 and subsection (2) applies \naccordingly. \n(2) The consequences of the annulment are governed by section 1318 accordingly. \nSections 1321 - 1352 \n(repealed) \nTitle 5 \nEffects of marriage in general \nSection 1353 \nConjugal union",
+        "Source: (englisch_bgb.pdf, p. 322)\n(1) Where a spouse, after the other spouse has been declared dead, enters into a new \nmarriage, then, if the spouse declared dead is still alive, the new marriage may be annulled \nfor breach of section 1306 only if both spouses knew at conclusion of the marriage that the \nspouse declared dead was still alive at the date of the declaration of death. \n(2) On conclusion of the new marriage, the earlier marriage is dissolved, unless both \nspouses of the new marriage knew at conclusion of the marriage that the spouse declared \ndead was still alive at the date of the declaration of death. It remains dissolved even if the \ndeclaration of death is set aside.",
+        "Source: (englisch_bgb.pdf, p. 323)\nService provided by the Federal Ministry of Justice and Consumer Protection \nand the Federal Office of Justice ‒ www.gesetze-im-internet.de \nPage 323 of 491 \nSection 1320 \nAnnulment of the new marriage \n(1) If the spouse declared dead is still alive, then notwithstanding section 1319, their former \nspouse may petition for the annulment of the new marriage, unless they knew at conclusion \nof the marriage that the spouse declared dead was still alive at the date of the declaration of \ndeath. The annulment may be petitioned for only within one year. The period begins on the \ndate on which the spouse of the former marriage obtained knowledge that the spouse \ndeclared dead is still alive. Section 1317 (1) sentence 3 and subsection (2) applies \naccordingly. \n(2) The consequences of the annulment are governed by section 1318 accordingly. \nSections 1321 - 1352 \n(repealed) \nTitle 5 \nEffects of marriage in general \nSection 1353 \nConjugal union"
+      ],
+      "passed": false,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no identified irrelevant statements; the response fully addresses the question.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 0.667,
+          "threshold": 0.7,
+          "passed": false,
+          "reason": "The score is 0.67 because the actual output misstated the exception: the former spouse must have known at the time of the new marriage that the declared-dead person was alive on the date of the death declaration, and the one-year period begins when the former spouse learns the spouse is alive.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because all retrieval-context nodes are relevant and ranked highly: the first and third nodes explain that annulment depends on both spouses' knowledge and how that affects the previous marriage, while the second and fourth clarify the former spouse's one-year petition period. No irrelevant nodes lower the precision. Great ranking.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because node(s) in retrieval context fully support all three sentences: node 1 supports the annulment condition in sentence 1 and the automatic, continuing dissolution in sentence 2, while node 2 supports the one-year petition period in sentence 3. Excellent coverage!",
+          "error": null
+        }
+      }
+    },
+    {
+      "input": "Under what conditions can a new marriage be annulled if the previously declared dead spouse is alive?",
+      "expected_output": "A new marriage can be annulled if the previously declared dead spouse is alive only if both spouses of the new marriage knew at the time of the new marriage that the declared dead spouse was still alive. The annulment must be petitioned within one year from the date the former spouse learns that the declared dead spouse is alive.",
+      "actual_output": "A new marriage can be annulled under the following conditions if a previously declared dead spouse is still alive:\n\n1. **Knowledge of the Living Spouse**: The annulment is possible if both parties in the new marriage knew that the spouse declared dead was still alive at the time they entered into the new marriage. If they did not know, the annulment might not be granted (BGB, Section 1320).\n\n2. **Petition for Annulment**: The former spouse of the person declared dead may petition for the annulment of the new marriage. However, this petition must be made within one year from the date they became aware that the declared dead spouse is still alive (BGB, Section 1320).\n\n3. **Dissolution of the Previous Marriage**: If the new marriage is concluded without knowledge of the living spouse’s status, the prior marriage is considered dissolved. This dissolution stands even if the declaration of death is later overturned (BGB, Section 1320).\n\nThese provisions ensure legal clarity and protect the rights of individuals in situations involving declarations of death and subsequent marriages.\n\nSources:\n- - englisch_bgb.pdf, p. 322\n- - englisch_bgb.pdf, p. 323",
+      "retrieved_chunks": 2,
+      "retrieval_context": [
+        "Source: (englisch_bgb.pdf, p. 322)\n(1) Where a spouse, after the other spouse has been declared dead, enters into a new \nmarriage, then, if the spouse declared dead is still alive, the new marriage may be annulled \nfor breach of section 1306 only if both spouses knew at conclusion of the marriage that the \nspouse declared dead was still alive at the date of the declaration of death. \n(2) On conclusion of the new marriage, the earlier marriage is dissolved, unless both \nspouses of the new marriage knew at conclusion of the marriage that the spouse declared \ndead was still alive at the date of the declaration of death. It remains dissolved even if the \ndeclaration of death is set aside.",
+        "Source: (englisch_bgb.pdf, p. 323)\nService provided by the Federal Ministry of Justice and Consumer Protection \nand the Federal Office of Justice ‒ www.gesetze-im-internet.de \nPage 323 of 491 \nSection 1320 \nAnnulment of the new marriage \n(1) If the spouse declared dead is still alive, then notwithstanding section 1319, their former \nspouse may petition for the annulment of the new marriage, unless they knew at conclusion \nof the marriage that the spouse declared dead was still alive at the date of the declaration of \ndeath. The annulment may be petitioned for only within one year. The period begins on the \ndate on which the spouse of the former marriage obtained knowledge that the spouse \ndeclared dead is still alive. Section 1317 (1) sentence 3 and subsection (2) applies \naccordingly. \n(2) The consequences of the annulment are governed by section 1318 accordingly. \nSections 1321 - 1352 \n(repealed) \nTitle 5 \nEffects of marriage in general \nSection 1353 \nConjugal union"
+      ],
+      "passed": true,
+      "metrics": {
+        "Answer Relevancy": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because the response fully addresses the question, with no irrelevant statements to reduce its relevance.",
+          "error": null
+        },
+        "Faithfulness": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because there are no contradictions, so the actual output is fully faithful to the retrieval context.",
+          "error": null
+        },
+        "Contextual Precision": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because both retrieval-context nodes are relevant and correctly ranked: the first node states that annulment is possible only if “both spouses knew at conclusion of the marriage” that the declared-dead spouse was alive, and the second gives the one-year petition deadline. There are no irrelevant nodes ranked above relevant ones.",
+          "error": null
+        },
+        "Contextual Recall": {
+          "score": 1.0,
+          "threshold": 0.7,
+          "passed": true,
+          "reason": "The score is 1.00 because sentence 1 is supported by node 1 in retrieval context, which requires both spouses to know the declared-dead spouse is alive when entering the new marriage, and sentence 2 is supported by node 2 in retrieval context, which sets a one-year petition period from the former spouse’s knowledge. Great match!",
+          "error": null
+        }
+      }
+    }
+  ]
+}

@@ -353,6 +353,14 @@ class FilesEmbeddings:
         return [docs[i] for i, _ in index.search(query, top_n=k, mode="text")]
 
     @staticmethod
+    def semantic_search(store, query: str, k: int) -> list[Document]:
+        """Vector search; each chunk's distance is kept in metadata["score"] (lower = closer)."""
+        results = store.similarity_search_with_score(query, k=k)
+        for doc, score in results:
+            doc.metadata["score"] = score
+        return [doc for doc, _ in results]
+
+    @staticmethod
     def reciprocal_rank_fusion(result_lists: list[list[Document]], k: int, rrf_k: int = 60) -> list[Document]:
         """Merge several ranked lists. A chunk ranked high in either list (or in both) wins.
 
@@ -381,12 +389,12 @@ class FilesEmbeddings:
 
         store = self.load_chroma_db(collection_name)
         if selection_mode == "semantic":
-            return store.similarity_search(query, k=k)
+            return self.semantic_search(store, query, k)
         if selection_mode == "keyword":
             return self.keyword_search(collection_name, query, k)
 
         # hybrid: take extra candidates from each method, then fuse the rankings
         candidates = k * 3
-        semantic = store.similarity_search(query, k=candidates)
+        semantic = self.semantic_search(store, query, candidates)
         keyword = self.keyword_search(collection_name, query, candidates)
         return self.reciprocal_rank_fusion([semantic, keyword], k)

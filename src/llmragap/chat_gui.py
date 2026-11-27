@@ -82,13 +82,23 @@ class ChatApp:
 
         # Only look at messages from this turn (after the conversation we sent).
         new_messages = result_messages[len(history):]
-        outputs = {m.tool_call_id: m.text for m in new_messages if isinstance(m, ToolMessage)}
-        steps = [
-            {"tool": call["name"], "input": call["args"], "output": outputs.get(call["id"], "")}
-            for m in new_messages
-            if isinstance(m, AIMessage)
-            for call in m.tool_calls
-        ]
+        tool_results = {m.tool_call_id: m for m in new_messages if isinstance(m, ToolMessage)}
+        steps = []
+        for m in new_messages:
+            if not isinstance(m, AIMessage):
+                continue
+            for call in m.tool_calls:
+                result = tool_results.get(call["id"])
+                docs = (result.artifact if result else None) or []  # chunks returned by the search tool
+                steps.append({
+                    "tool": call["name"],
+                    "input": call["args"],
+                    "output": result.text if result else "",
+                    "chunks": [
+                        {"citation": RagAgent.citation(d), "score": d.metadata.get("score"), "text": d.page_content}
+                        for d in docs
+                    ],
+                })
         return result_messages[-1].text, steps, {**cost.as_dict(), "search_embedding_usd": search_cost}
 
     # --- UI parts ---
@@ -220,7 +230,20 @@ class ChatApp:
                 st.caption(f":material/help: {question[:120]}{'…' if len(question) > 120 else ''}")
                 for step in steps:
                     with st.expander(step["tool"], icon=":material/construction:"):
-                        self.show_step_details(step)
+                        self.show_chunks(step)
+
+    def show_chunks(self, step: dict) -> None:
+        """The search query, then each retrieved chunk with its citation and score."""
+        chunks = step.get("chunks")
+        if not chunks:  # older answers, or no chunks found
+            self.show_step_details(step)
+            return
+        st.caption(f"Query: {step['input'].get('query', step['input'])}")
+        for rank, chunk in enumerate(chunks, start=1):
+            score = chunk["score"]
+            score_text = f"score {score:.4f}" if score is not None else "keyword match (no score)"
+            st.markdown(f"**#{rank}** · :blue[{chunk['citation']}] · :orange[{score_text}]")
+            st.text(chunk["text"])
 
     @staticmethod
     def show_message_cost(cost: dict | None) -> None:
