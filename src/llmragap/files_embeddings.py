@@ -373,7 +373,7 @@ class FilesEmbeddings:
         collection_name: str,
         query: str,
         selection_mode: str = DEFAULT_SELECTION_MODE,
-        k: int = 4,
+        k: int = 2,
     ) -> list[Document]:
         """Search one collection using the selected mode: semantic, keyword or hybrid."""
         if selection_mode not in SEARCH_MODES:

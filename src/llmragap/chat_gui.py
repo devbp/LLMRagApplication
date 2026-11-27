@@ -8,12 +8,13 @@ Run:
     uv run streamlit run src/llmragap/chat_gui.py
 """
 
-
+from datetime import datetime
 
 import streamlit as st
 from langchain_core.messages import AIMessage, ToolMessage
 
 from llmragap.app_resources import get_files_embeddings
+from llmragap.chat_export import build_chat_pdf
 from llmragap.files_embeddings import DEFAULT_SELECTION_MODE, SEARCH_MODES, FilesEmbeddings
 from llmragap.Main_Rag_Agent import ChatCostCallback, RagAgent
 from llmragap.session_cost import (
@@ -108,8 +109,26 @@ class ChatApp:
             )
             if st.button("Clear chat", icon=":material/delete:", width="stretch"):
                 self.clear_chat()
+            self.render_export_button()
             st.divider()
             self.render_cost_summary()
+
+    def render_export_button(self) -> None:
+        """Download the chat history as a PDF. The PDF is only built when the button is clicked."""
+        # The callable runs in a separate thread without access to st.session_state,
+        # so give it a copy of the messages as they are now.
+        messages = list(self.messages)
+        st.download_button(
+            "Export chat as PDF",
+            data=lambda: build_chat_pdf(messages, self.TITLE),
+            file_name=f"chat_history_{datetime.now():%Y-%m-%d_%H-%M}.pdf",
+            mime="application/pdf",
+            icon=":material/picture_as_pdf:",
+            width="stretch",
+            disabled=not messages,
+            on_click="ignore",  # downloading doesn't need to rerun the page
+            help="Questions, answers with citations, tools used and cost per answer.",
+        )
 
     money = staticmethod(money)
 
