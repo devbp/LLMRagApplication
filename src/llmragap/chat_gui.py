@@ -8,6 +8,8 @@ Run:
     uv run streamlit run src/llmragap/chat_gui.py
 """
 
+
+
 import streamlit as st
 from langchain_core.messages import AIMessage, ToolMessage
 
@@ -91,7 +93,8 @@ class ChatApp:
     # --- UI parts ---
 
     def render_header(self) -> None:
-        st.set_page_config(page_title=self.TITLE, page_icon=":material/smart_toy:")
+        # wide layout so the chat and the tools panel on the right both have room
+        st.set_page_config(page_title=self.TITLE, page_icon=":material/smart_toy:", layout="wide")
         st.title(f":material/smart_toy: {self.TITLE}")
         st.caption("Ask about German insurance or civil law, your medicine documents, or anything else.")
 
@@ -162,6 +165,14 @@ class ChatApp:
         st.session_state.pop("suggestion", None)  # so the old suggestion isn't asked again
         st.rerun()
 
+    def show_step_details(self, step: dict) -> None:
+        """A tool call's input (JSON) and output (cut off if very long)."""
+        st.json(step["input"])
+        output = step["output"]
+        if len(output) > self.MAX_TOOL_OUTPUT_CHARS:
+            output = output[: self.MAX_TOOL_OUTPUT_CHARS] + "\n..."
+        st.text(output)
+
     def show_steps(self, steps: list[dict]) -> None:
         """Show the agent's tool calls as a collapsed timeline."""
         if not steps:
@@ -169,11 +180,28 @@ class ChatApp:
         with st.expander(f"Used {len(steps)} tool call(s)", type="compact"):
             for step in steps:
                 with st.expander(step["tool"], type="step"):
-                    st.json(step["input"])
-                    output = step["output"]
-                    if len(output) > self.MAX_TOOL_OUTPUT_CHARS:
-                        output = output[: self.MAX_TOOL_OUTPUT_CHARS] + "\n..."
-                    st.text(output)
+                    self.show_step_details(step)
+
+    def render_tool_panel(self) -> None:
+        """Right-hand panel: every tool the agent called this chat, newest question first."""
+        st.subheader(":material/build: Tools called")
+        turns = [
+            (self.messages[i - 1]["content"] if i > 0 else "", msg["steps"])
+            for i, msg in enumerate(self.messages)
+            if msg["role"] == "assistant" and msg.get("steps")
+        ]
+        if not turns:
+            st.caption("No tools called yet. They appear here after each answer.")
+            return
+
+        total = sum(len(steps) for _, steps in turns)
+        st.caption(f"{self.plural(total, 'call')} in {self.plural(len(turns), 'answer')}")
+        for question, steps in reversed(turns):
+            with st.container(border=True):
+                st.caption(f":material/help: {question[:120]}{'…' if len(question) > 120 else ''}")
+                for step in steps:
+                    with st.expander(step["tool"], icon=":material/construction:"):
+                        self.show_step_details(step)
 
     @staticmethod
     def show_message_cost(cost: dict | None) -> None:
@@ -196,13 +224,18 @@ class ChatApp:
                 if msg["role"] == "assistant":
                     self.show_message_cost(msg.get("cost"))
 
-    def get_prompt(self) -> str | None:
-        """Return the typed question, or a picked suggestion while the chat is empty."""
+    def get_prompt(self, chat_area) -> str | None:
+        """Return the typed question, or a picked suggestion while the chat is empty.
+
+        The chat input stays at the top level so it remains pinned to the bottom of the page;
+        the suggestion pills go in the chat column.
+        """
         prompt = st.chat_input("Ask a question", submit_mode="disable")
         if not self.messages and not prompt:
-            picked = st.pills(
-                "Try asking:", list(self.SUGGESTIONS), label_visibility="collapsed", key="suggestion"
-            )
+            with chat_area:
+                picked = st.pills(
+                    "Try asking:", list(self.SUGGESTIONS), label_visibility="collapsed", key="suggestion"
+                )
             if picked:
                 prompt = self.SUGGESTIONS[picked]
         return prompt
@@ -239,9 +272,14 @@ class ChatApp:
         self.render_header()
         show_cost_save_error()
         self.render_sidebar()
-        self.render_history()
-        if prompt := self.get_prompt():
-            self.handle_prompt(prompt)
+        chat_area, tools_area = st.columns([3, 1], gap="large")
+        with tools_area:
+            self.render_tool_panel()
+        with chat_area:
+            self.render_history()
+        if prompt := self.get_prompt(chat_area):
+            with chat_area:
+                self.handle_prompt(prompt)
 
 
 ChatApp().run()
